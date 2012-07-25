@@ -4,6 +4,7 @@ from fabric.colors import *
 from fabric.contrib.files import *
 from fabric.contrib.console import confirm
 from fabric.operations import require
+from fabric.operations import open_shell
 from fabric.tasks import Task
 import os
 
@@ -71,7 +72,7 @@ class RemoteTask(Task):
         'project_name',
     ]
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
         """ Task implementation - called from self.run() """
 
         raise NotImplementedError
@@ -124,11 +125,12 @@ class RemoteTask(Task):
                 'instance_stamp': self.stamp,
                 'instance_path': instance_path,
                 'source_path': os.path.join(instance_path, env.project_name),
+                'project_source_path': os.path.join(instance_path, env.project_name, getattr(env, 'project_source_folder', '')),
                 'virtualenv_path': os.path.join(instance_path, 'env'),
             })
 
             # finally, run the task implementation!
-            self()
+            self(*args, **kwargs)
 
 
 class Deployment(RemoteTask):
@@ -150,7 +152,7 @@ class Deployment(RemoteTask):
     name = 'deploy'
 
     def run(self, *args, **kwargs):
-        """ 
+        """
         Load instance from CLI kwargs
 
             default => deploy by HEAD for current branch by default
@@ -179,7 +181,7 @@ class Deployment(RemoteTask):
 
         super(Deployment, self).run(*args, **kwargs)
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
 
         # check if deploy is possible
         if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
@@ -188,6 +190,13 @@ class Deployment(RemoteTask):
             abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
         if exists(env.instance_path):
             abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
+
+        """
+        parse optional 'pause' argument, can be given like this:
+
+        fab staging deploy:pause=before_migrate
+        """
+        pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
 
         # start deploy
         try:
@@ -199,7 +208,7 @@ class Deployment(RemoteTask):
                 env.virtualenv_path,
             ]
             for folder in folders_to_create:
-                utils.commands.create_folder(folder) 
+                utils.commands.create_folder(folder)
 
             print(green('\nDeploying source.'))
             utils.source.transfer_source(upload_path=env.source_path, tree=self.stamp)
@@ -207,10 +216,13 @@ class Deployment(RemoteTask):
             print(green('\nCreating virtual environment.'))
             utils.instance.create_virtualenv(env.virtualenv_path, env.user)
 
+            print(green('\nCopying .pth files.'))
+            put('%s/*.pth' % getattr(env, 'project_source_folder', '.'), '%s/lib/python2.6/site-packages' % env.virtualenv_path)
+
             print(green('\nPip installing requirements.'))
             utils.instance.pip_install_requirements(
                 env.virtualenv_path,
-                env.source_path,
+                env.project_source_path,
                 env.cache_path,
                 env.log_path
             )
@@ -218,19 +230,19 @@ class Deployment(RemoteTask):
             print(green('\nCopying settings.py.'))
             utils.commands.copy(
                 from_path = os.path.join(env.project_path, 'settings.py'),
-                to_path = os.path.join(env.source_path, 'settings.py')
+                to_path = os.path.join(env.project_source_path, 'settings.py')
             )
 
             print(green('\nLinking media folder.'))
             utils.commands.create_symbolic_link(
                 real_path = os.path.join(env.project_path, 'media'),
-                symbolic_path = os.path.join(env.source_path, 'media')
+                symbolic_path = os.path.join(env.project_source_path, 'media')
             )
 
             print(green('\nCollecting static files.'))
             utils.commands.django_manage(
                 env.virtualenv_path,
-                env.source_path,
+                env.project_source_path,
                 'collectstatic --link --noinput --verbosity=0 --traceback'
             )
         except:
@@ -251,12 +263,20 @@ class Deployment(RemoteTask):
             )
 
             with settings(show('stdout')):
+                if ('before_syncdb' in pause_at):
+                    print(green('\nOpening remote shell.'))
+                    open_shell()
+
                 print(green('\nSyncing database.'))
-                utils.commands.django_manage(env.virtualenv_path, env.source_path, 'syncdb')
+                utils.commands.django_manage(env.virtualenv_path, env.project_source_path, 'syncdb')
                 print('')
 
+                if ('before_migrate' in pause_at):
+                    print(green('\nOpening remote shell.'))
+                    open_shell()
+
                 print(green('\nMigrating database.'))
-                utils.commands.django_manage(env.virtualenv_path, env.source_path, 'migrate')
+                utils.commands.django_manage(env.virtualenv_path, env.project_source_path, 'migrate')
                 print('')
 
             print(green('\nBacking up database at end.'))
@@ -280,15 +300,22 @@ class Deployment(RemoteTask):
 
             abort(red('Deploy failed and was rolled back.'))
 
+        if ('before_restart' in pause_at):
+            print(green('\nOpening remote shell.'))
+            open_shell()
+
         print(green('\nUpdating instance symlinks.'))
         utils.instance.set_current_instance(env.project_path, env.instance_path)
 
         print(green('\nRestarting website.'))
         utils.commands.touch_wsgi(env.project_path)
 
+        if ('after_restart' in pause_at):
+            print(green('\nOpening remote shell.'))
+            open_shell()
+
         self.log(success=True)
         self.prune_instances()
-
 
     def prune_instances(self):
         """ Find old instances and remove them to free up space """
@@ -312,7 +339,7 @@ class Rollback(RemoteTask):
 
     name = 'rollback'
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
 
         # check if rollback is possible
         if not exists(env.previous_instance_path):
@@ -350,7 +377,7 @@ class Status(RemoteTask):
 
     name = 'status'
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
 
         print(green('\nCurrent size of entire project:'))
         print(utils.commands.get_folder_size(env.project_path))
@@ -381,7 +408,7 @@ class Media(RemoteTask):
 
     name = 'media'
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
 
         file_name = 'project_media.tar'
         cwd = os.getcwd()
@@ -404,7 +431,7 @@ class Database(RemoteTask):
 
     name = 'database'
 
-    def __call__(self):
+    def __call__(self, *args, **kwargs):
 
         timestamp = datetime.today().strftime('%y%m%d%H%M')
         file_name = '%s_%s.sql' % (env.database_name, timestamp)
