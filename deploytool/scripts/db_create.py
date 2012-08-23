@@ -5,9 +5,9 @@ from credentials import *
 
 
 command = 'mysqladmin --user="%s" --password="%s" create "%s"' % (
-	username,
-	password,
-	database
+    username,
+    password,
+    database
 )
 
 subprocess.call(command, shell=True)
