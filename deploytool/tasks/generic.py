@@ -1,13 +1,9 @@
-from datetime import datetime
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
 from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.tasks import Task
-import os
-
-import deploytool.utils as utils
 
 
 class ListTasks(Task):
