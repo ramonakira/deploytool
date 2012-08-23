@@ -6,11 +6,11 @@ from fabric.contrib.files import *
 import commands
 
 
-def get_obsolete_instances(project_path):
+def get_obsolete_instances(vhost_path):
     """ Return obsolete instances from remote server """
 
     try:
-        with cd(project_path):
+        with cd(vhost_path):
 
             # list directories, display name only, sort by ctime, filter by git-commit-tag-length
             command = 'ls -1tcd */ | awk \'{ if(length($1) == 41) { print substr($1,0,40) }}\''
@@ -61,10 +61,10 @@ def get_instance_stamp(instance_path):
     return commands.read_link(instance_path)[-40:]
 
 
-def set_current_instance(project_path, instance_path):
+def set_current_instance(vhost_path, instance_path):
     """ Delete previous, set current to previous and new to current """
 
-    with cd(project_path):
+    with cd(vhost_path):
         commands.delete('./previous_instance')
 
         if exists('./current_instance'):
@@ -73,10 +73,10 @@ def set_current_instance(project_path, instance_path):
         commands.create_symbolic_link(instance_path, './current_instance')
 
 
-def rollback(project_path):
+def rollback(vhost_path):
     """ Updates symlinks: Remove current instance and rename previous to current """
 
-    with cd(project_path):
+    with cd(vhost_path):
         if exists('./previous_instance'):
             commands.delete('./current_instance')
             commands.rename('./previous_instance', './current_instance')

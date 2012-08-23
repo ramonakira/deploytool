@@ -10,10 +10,10 @@ def get_folder_size(path):
     return run('du -h --summarize %s' % path)
 
 
-def create_tarball(project_path, target, file_name='archive.tar'):
+def create_tarball(vhost_path, target, file_name='archive.tar'):
     """ Create archive from target file/folder """
 
-    with cd(project_path):
+    with cd(vhost_path):
         run('tar -cf ./%s ./%s' % (file_name, target))
 
 
@@ -65,10 +65,10 @@ def rename(old_path, new_path):
     run('mv %s %s' % (old_path, new_path))
 
 
-def touch_wsgi(project_path):
+def touch_wsgi(vhost_path):
     """ Touch WSGI to restart website """
 
-    return run('touch %s/django.wsgi' % project_path)
+    return run('touch %s/django.wsgi' % vhost_path)
 
 
 def python_run(virtualenv_path, command):
@@ -77,10 +77,10 @@ def python_run(virtualenv_path, command):
     return run('%s/bin/python %s' % (virtualenv_path, command))
 
 
-def django_manage(virtualenv_path, project_source_path, command):
+def django_manage(virtualenv_path, project_path, command):
     """ Execute Django management command """
 
-    python_path = os.path.join(project_source_path, 'manage.py')
+    python_path = os.path.join(project_path, 'manage.py')
     python_command = '%s %s' % (python_path, command)
     python_run(virtualenv_path, python_command)
 
