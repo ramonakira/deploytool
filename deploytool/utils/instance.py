@@ -15,8 +15,8 @@ def get_obsolete_instances(project_path):
             # list directories, display name only, sort by ctime, filter by git-commit-tag-length
             command = 'ls -1tcd */ | awk \'{ if(length($1) == 41) { print substr($1,0,40) }}\''
 
-            # split into list and return everything but the 5 newest instances
-            return run(command).split()[5:]
+            # split into list and return everything but the 3 newest instances
+            return run(command).split()[3:]
     except:
         return []
 
