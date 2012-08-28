@@ -6,6 +6,8 @@ server {
     listen 80;
     server_name %(website_name)s;
 
+    client_max_body_size 5M;
+
     access_log %(log_path)s/nginx_access.log;
     error_log %(log_path)s/nginx_error.log;
 
