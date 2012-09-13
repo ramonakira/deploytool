@@ -5,8 +5,8 @@ Fabric Deployment
 Project application for deployment, provisioning and local tasks.
 
 
-Remote requirements:
-====================
+Remote requirements
+===================
 * Apache
 * Cent OS
 * gcc
@@ -22,31 +22,28 @@ Remote requirements:
 * virtualenv (1.6+)
 
 
-Local requirements:
-===================
+Local requirements
+==================
 * Fabric (1.2.2+)
 * Git (1.6+)
 
 
-Usage:
-======
-Add deployment app to Django project:
+Usage
+=====
+Install deploytool
 
 ::
 
-    $ cd /path/to/project
-    $ git clone git@github.com:leukeleu/deployment-fabric.git
-    $ mv ./deployment-fabric/deployment ./deployment
-    $ mv ./deployment-fabric/fabfile.py ./fabfile.py
-    $ rm -rf ./deployment-fabric
+    $ pip install deploytool
+
 
 Prepare by having passwords at hand for these users:
 
-* OS: provisioning user (SSH, sudo)
-* OS: project user (deployment tasks)
-* DB: mysql root user (database provisioning)
-* DB: mysql project user (deployment tasks)
-* DJ: django admin user (site admin access)
+* provisioning user (ssh, sudo)
+* project user (deployment tasks)
+* MySQL root user (database provisioning)
+* MySQL project user (deployment tasks)
+* Django admin user (site admin access)
 
 Provision & deploy the project:
 
@@ -56,8 +53,64 @@ Provision & deploy the project:
 * First deploy ('fab staging deploy')
 
 
-Examples:
-=========
+Pausing
+-------
+
+The deploy can be paused at will at several predefined moments.
+If you pause the deploy, you get thrown into a (slightly crippled) shell session on the remote server.
+When you `exit` from the remote, the deploy will continue where it left off.
+
+::
+
+    $ fab staging deploy:pause={pause_moment}
+
+Where {pause_moment} can be one of:
+
+* before_deploy_source
+* before_create_virtualenv
+* before_pip_install
+* after_pip_install
+* before_syncdb
+* before_migrate
+* before_restart
+* after_restart
+
+
+Hooks
+-----
+
+Hooks are functions that can be run at predefined moments during the deploy.
+Hooks can be attached to the deploy-flow of an instance like this:
+
+::
+
+    def before_syncdb(env, *args, **kwargs):
+        # do something useful before syncing the database
+        ...
+
+
+    staging_items = {
+        'website_name': 'subdomain.example.com',
+        'project_name_prefix': 's-',
+        'environment': 'staging',
+        'before_syncdb': before_syncdb,
+    }.items()
+
+
+The available hooks are:
+
+* before_deploy_source
+* before_create_virtualenv
+* before_pip_install
+* after_pip_install
+* before_syncdb
+* before_migrate
+* before_restart
+* after_restart
+
+
+Examples
+========
 
 ::
 
@@ -70,6 +123,5 @@ Examples:
     # execute task with parameters
     $ fab TASKNAME:ARG=VALUE
 
-    # example: deploy latest version of local current branch to staging server
+    # example: deploy current local commit to staging server
     $ fab staging deploy
-
