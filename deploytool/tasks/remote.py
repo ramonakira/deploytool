@@ -235,6 +235,15 @@ class Deployment(RemoteTask):
             print(green('\nCreating virtual environment.'))
             utils.instance.create_virtualenv(env.virtualenv_path, env.user)
 
+            # before_pip_install pause
+            if ('before_pip_install' in pause_at):
+                print(green('\nOpening remote shell - before_pip_install.'))
+                open_shell()
+
+            # before_pip_install hook
+            if ('before_pip_install' in env):
+                env.before_pip_install(env, *args, **kwargs)
+
             if exists(os.path.join(env.project_path, '*.pth')):
                 print(green('\nCopying .pth files.'))
                 utils.commands.copy(

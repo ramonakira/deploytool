@@ -7,6 +7,7 @@ Project application for deployment, provisioning and local tasks.
 
 Remote requirements
 ===================
+
 * Apache
 * CentOS
 * gcc
@@ -24,6 +25,7 @@ Remote requirements
 
 Local requirements
 ==================
+
 * Fabric (1.2.2+)
 * Git (1.6+)
 
@@ -37,17 +39,18 @@ Install deploytool
 
     $ pip install deploytool
 
+
 Add a fabfile.py in the root folder of your Django project. An example can be found here:
 
 `https://github.com/leukeleu/deploytool <https://github.com/leukeleu/deploytool>`_
 
 Prepare by having passwords at hand for these users:
 
-* provisioning user (ssh, sudo)
+* Remote provisioning user (ssh, sudo)
+* Remote MySQL root user (for database provisioning)
 * project user (deployment tasks)
-* MySQL root user (database provisioning)
 * MySQL project user (deployment tasks)
-* Django admin user (site admin access)
+* Django admin user (Django admin access)
 
 Provision & deploy the project:
 
@@ -130,8 +133,8 @@ Examples
     $ fab staging deploy
 
 
-Deployed Folder structure:
-==========================
+Deployed Folder structure
+=========================
 
 ::
 
