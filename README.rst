@@ -5,8 +5,9 @@ Fabric Deployment
 Project application for deployment, provisioning and local tasks.
 
 
-Remote requirements:
-====================
+Remote requirements
+===================
+
 * Apache
 * CentOS
 * gcc
@@ -22,19 +23,22 @@ Remote requirements:
 * virtualenv (1.6+)
 
 
-Local requirements:
-===================
+Local requirements
+==================
+
 * Fabric (1.2.2+)
 * Git (1.6+)
 
 
-Usage:
-======
-Add deploytool to your Django project:
+Usage
+=====
+
+Install deploytool
 
 ::
 
     $ pip install deploytool
+
 
 Add a fabfile.py in the root folder of your Django project. An example can be found here:
 
@@ -44,6 +48,9 @@ Prepare by having passwords at hand for these users:
 
 * Remote provisioning user (ssh, sudo)
 * Remote MySQL root user (for database provisioning)
+* project user (deployment tasks)
+* MySQL project user (deployment tasks)
+* Django admin user (Django admin access)
 
 Provision & deploy the project:
 
@@ -52,8 +59,64 @@ Provision & deploy the project:
 * First deploy ('fab staging deploy')
 
 
-Examples:
-=========
+Pausing
+-------
+
+The deploy can be paused at will at several predefined moments.
+If you pause the deploy, you get thrown into a (slightly crippled) shell session on the remote server.
+When you `exit` from the remote, the deploy will continue where it left off.
+
+::
+
+    $ fab staging deploy:pause={pause_moment}
+
+Where {pause_moment} can be one of:
+
+* before_deploy_source
+* before_create_virtualenv
+* before_pip_install
+* after_pip_install
+* before_syncdb
+* before_migrate
+* before_restart
+* after_restart
+
+
+Hooks
+-----
+
+Hooks are functions that can be run at predefined moments during the deploy.
+Hooks can be attached to the deploy-flow of an instance like this:
+
+::
+
+    def before_syncdb(env, *args, **kwargs):
+        # do something useful before syncing the database
+        ...
+
+
+    staging_items = {
+        'website_name': 'subdomain.example.com',
+        'project_name_prefix': 's-',
+        'environment': 'staging',
+        'before_syncdb': before_syncdb,
+    }.items()
+
+
+The available hooks are:
+
+* before_deploy_source
+* before_create_virtualenv
+* before_pip_install
+* after_pip_install
+* before_syncdb
+* before_migrate
+* before_restart
+* after_restart
+
+
+Examples
+========
 
 ::
 
@@ -66,12 +129,12 @@ Examples:
     # execute task with parameters
     $ fab TASKNAME:ARG=VALUE
 
-    # example: deploy latest version of local current branch to staging server
+    # example: deploy current local commit to staging server
     $ fab staging deploy
 
 
-Deployed Folder structure:
-==========================
+Deployed Folder structure
+=========================
 
 ::
 

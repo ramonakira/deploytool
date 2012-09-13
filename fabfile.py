@@ -38,6 +38,7 @@ live = tasks.remote.RemoteHost(settings=dict(project_items + live_items))
 deploy = tasks.remote.Deployment()
 rollback = tasks.remote.Rollback()
 status = tasks.remote.Status()
+size = tasks.remote.Size()
 database = tasks.remote.Database()
 media = tasks.remote.Media()
 
