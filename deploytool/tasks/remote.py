@@ -533,6 +533,13 @@ class Test(RemoteTask):
 
     def __call__(self, *args, **kwargs):
 
+        """
+        parse optional 'pause' argument, can be given like this:
+
+        fab staging test:pause=test
+        """
+        pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
+
         # test pause
         if ('test' in pause_at):
             print(green('\nOpening remote shell - test.'))
