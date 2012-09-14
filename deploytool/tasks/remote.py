@@ -524,3 +524,20 @@ class Database(RemoteTask):
 
         print(green('\nSaved backup to:'))
         print(os.path.join(cwd, file_name))
+
+
+class Test(RemoteTask):
+    """ REMO - Test task for testing pauses and hooks """
+
+    name = 'test'
+
+    def __call__(self, *args, **kwargs):
+
+        # test pause
+        if ('test' in pause_at):
+            print(green('\nOpening remote shell - test.'))
+            open_shell()
+
+        # test hook
+        if ('test' in env):
+            env.test(env, *args, **kwargs)

@@ -80,6 +80,7 @@ Where {pause_moment} can be one of:
 * before_migrate
 * before_restart
 * after_restart
+* test
 
 
 Hooks
@@ -113,6 +114,7 @@ The available hooks are:
 * before_migrate
 * before_restart
 * after_restart
+* test
 
 
 Examples

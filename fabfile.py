@@ -41,6 +41,7 @@ status = tasks.remote.Status()
 size = tasks.remote.Size()
 database = tasks.remote.Database()
 media = tasks.remote.Media()
+test = tasks.remote.Test()
 
 # provisioning
 setup = tasks.provision.Setup()
