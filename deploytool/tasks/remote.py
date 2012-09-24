@@ -381,6 +381,8 @@ class Deployment(RemoteTask):
     def prune_instances(self):
         """ Find old instances and remove them to free up space """
 
+        print(green('\nRemoving old instances from remote filesystem.'))
+
         old_instances = utils.instance.get_obsolete_instances(env.project_path)
 
         for instance in old_instances:
@@ -391,7 +393,7 @@ class Deployment(RemoteTask):
                 utils.commands.delete(os.path.join(env.project_path, instance))
 
         if len(old_instances) > 0:
-            print(green('\nThese old instances were removed from remote filesystem:'))
+            print(green('These old instances were removed:'))
             print(old_instances)
 
 
