@@ -125,7 +125,7 @@ class Setup(ProvisioningTask):
 
         # [1] create new project_user
         print(green('\nCreating project user `%s`' % project_user))
-        user_exists = bool(run('cat /etc/passwd').find(project_user) > 0)
+        user_exists = bool(run('cat /etc/passwd').find(project_user + ':') > 0)
 
         if user_exists:
             # user already exists, ask if this user is available for reuse
