@@ -175,19 +175,28 @@ class Deployment(RemoteTask):
             else:
                 self.stamp = utils.source.get_head()
 
-            # show git diff
+            # get deployed commit hash
             current_instance = utils.commands.read_link(env.current_instance_path)
             current_stamp = utils.instance.get_instance_stamp(current_instance)
-            output = local('git diff --stat %s %s' % (self.stamp, current_stamp, ), capture=True)
 
-            if output == '':
-                output = 'No differences.'
+            # check if `current_stamp` exists in local repository
+            current_stamp_exists = local('git branch --contains %s' % current_stamp, capture=True)
+            if not current_stamp_exists:
+                print(red('\nWarning: deployed commit is not in your local repository.'))
 
-            print(green('\nGit diff %s %s' % (self.stamp[:7], current_stamp[:7], )))
-            print(output)
+            # show changed files with git diff
+            else:
+                git_diff = local('git diff --stat %s %s' % (self.stamp, current_stamp, ), capture=True)
+                git_diff = [c.strip() for c in git_diff.split('\n') if c != '']
 
+                if not git_diff:
+                    print(red('\nNo differences with current deploy (commit %s).' % current_stamp[:7]))
+                else:
+                    print(green('\nChanged files (git diff %s %s)' % (self.stamp[:7], current_stamp[:7], )))
+                    print('\n'.join(str(i) for i in git_diff))
+
+            # ask to deploy
             _args = (utils.source.get_branch_name(), self.stamp)
-
             question = '\nDeploy branch %s at commit %s?' % _args
 
             if not confirm(yellow(question)):
