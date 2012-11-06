@@ -174,20 +174,24 @@ class Deployment(RemoteTask):
             # deploy by local HEAD for local current branch
             else:
                 self.stamp = utils.source.get_head()
-                _args = (utils.source.get_branch_name(), self.stamp)
 
-                # show git diff
-                current_instance = utils.commands.read_link(env.current_instance_path)
-                current_stamp = utils.instance.get_instance_stamp(current_instance)
-                output = local('git diff --stat %s %s' % (self.stamp, current_stamp, ), capture=True)
+            # show git diff
+            current_instance = utils.commands.read_link(env.current_instance_path)
+            current_stamp = utils.instance.get_instance_stamp(current_instance)
+            output = local('git diff --stat %s %s' % (self.stamp, current_stamp, ), capture=True)
 
-                print(green('\nGit diff %s %s' % (self.stamp[:7], current_stamp[:7], )))
-                print(output)
+            if output == '':
+                output = 'No differences.'
 
-                question = '\nDeploy branch %s at commit %s?' % _args
+            print(green('\nGit diff %s %s' % (self.stamp[:7], current_stamp[:7], )))
+            print(output)
 
-                if not confirm(yellow(question)):
-                    abort(red('Aborted deployment. Run `fab -d %s` for options.' % self.name))
+            _args = (utils.source.get_branch_name(), self.stamp)
+
+            question = '\nDeploy branch %s at commit %s?' % _args
+
+            if not confirm(yellow(question)):
+                abort(red('Aborted deployment. Run `fab -d %s` for options.' % self.name))
 
         super(Deployment, self).run(*args, **kwargs)
 
