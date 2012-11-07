@@ -10,16 +10,22 @@ def get_folder_size(path):
     return run('du -h --summarize %s' % path)
 
 
-def get_changed_files(local_stamp, remote_stamp):
+def get_changed_files(local_stamp, remote_stamp, show_full_diff=False):
     """ Returns git diff from remote commit hash vs local HEAD commit hash """
 
-    output = local('git diff --stat %s %s' % (remote_stamp, local_stamp, ), capture=True)
+    options = ''
+    if not show_full_diff:
+        options = options + '--stat'
+
+    git_diff = 'git diff %s %s %s' % (options, remote_stamp, local_stamp, )
+
+    output = local(git_diff, capture=True)
     output = [c.strip() for c in output.split('\n') if c != '']
 
     if not output:
         return 'No changes found.'
     else:
-        return '\n'.join(str(i) for i in output)
+        return '\n'.join(str(i) for i in output) + '\n\nExecuted git diff:\n' + git_diff
 
 
 def remote_stamp_in_local_repo(remote_stamp):

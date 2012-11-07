@@ -477,8 +477,12 @@ class Diff(RemoteTask):
 
     def __call__(self, *args, **kwargs):
 
+        show_full_diff = False
+        if 'full' in args:
+            show_full_diff = True
+
         print(green('\nChanged files compared to remote host.'))
-        print(utils.commands.get_changed_files(utils.source.get_head(), env.instance_stamp))
+        print(utils.commands.get_changed_files(utils.source.get_head(), env.instance_stamp, show_full_diff))
 
 
 class Media(RemoteTask):
