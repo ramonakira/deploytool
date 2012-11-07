@@ -140,14 +140,8 @@ class Deployment(RemoteTask):
 
         Usage:
 
-        # default deployment using current git HEAD
+        # deployment using current git HEAD
         $ fab staging deploy
-
-        # deployment for a specific git branch
-        $ fab staging deploy:branch=my-branch
-
-        # deployment for a specific git commit ID
-        $ fab staging deploy:commit=1ec9d293ce54647df7f15ee7c0295b8eb2a5cbef
     """
 
     name = 'deploy'
@@ -156,24 +150,13 @@ class Deployment(RemoteTask):
         """
         Load instance from CLI kwargs
 
-            default => deploy by HEAD for current branch by default
-            commit  => deploy by commit SHA1 ID
-            branch  => deploy by HEAD for branch
+            deploy by HEAD for current branch
         """
 
         with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 
-            # deploy by local commit
-            if 'commit' in kwargs:
-                self.stamp = kwargs['commit']
-
-            # deploy by HEAD for branch
-            elif 'branch' in kwargs:
-                self.stamp = utils.source.get_commit_id(kwargs['branch'])
-
             # deploy by local HEAD for local current branch
-            else:
-                self.stamp = utils.source.get_head()
+            self.stamp = utils.source.get_head()
 
             # get deployed commit hash
             current_instance = utils.commands.read_link(env.current_instance_path)
