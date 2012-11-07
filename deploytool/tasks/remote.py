@@ -480,6 +480,17 @@ class Size(RemoteTask):
         print(utils.commands.get_folder_size(env.project_path))
 
 
+class Diff(RemoteTask):
+    """ REMO - Show changed files with remote host """
+
+    name = 'diff'
+
+    def __call__(self, *args, **kwargs):
+
+        print(green('\nChanged files with remote host.'))
+        print(utils.commands.get_changed_files(utils.source.get_head(), env.instance_stamp))
+
+
 class Media(RemoteTask):
     """ REMO - Download media files (as archive) """
 

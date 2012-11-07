@@ -39,8 +39,9 @@ deploy = tasks.remote.Deployment()
 rollback = tasks.remote.Rollback()
 status = tasks.remote.Status()
 size = tasks.remote.Size()
-database = tasks.remote.Database()
+diff = tasks.remote.Diff()
 media = tasks.remote.Media()
+database = tasks.remote.Database()
 test = tasks.remote.Test()
 
 # provisioning

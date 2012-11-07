@@ -10,6 +10,20 @@ def get_folder_size(path):
     return run('du -h --summarize %s' % path)
 
 
+def get_changed_files(local_stamp, remote_stamp):
+    """ Returns git diff from remote commit hash vs local HEAD commit hash """
+
+    git_diff = local('git diff --stat %s %s' % (remote_stamp, local_stamp, ), capture=True)
+    git_diff = [c.strip() for c in git_diff.split('\n') if c != '']
+
+    if not git_diff:
+        output = red('\nNo differences with current deploy.')
+    else:
+        output = '\n'.join(str(i) for i in git_diff)
+
+    return output
+
+
 def create_tarball(vhost_path, target, file_name='archive.tar'):
     """ Create archive from target file/folder """
 
