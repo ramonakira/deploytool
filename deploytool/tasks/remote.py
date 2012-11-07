@@ -155,31 +155,21 @@ class Deployment(RemoteTask):
 
         with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 
-            # deploy by local HEAD for local current branch
-            self.stamp = utils.source.get_head()
-
-            # get deployed commit hash
+            # check if remote stamp exists in local repo
             current_instance = utils.commands.read_link(env.current_instance_path)
-            current_stamp = utils.instance.get_instance_stamp(current_instance)
+            remote_stamp = utils.instance.get_instance_stamp(current_instance)
 
-            # check if `current_stamp` exists in local repository
-            current_stamp_exists = local('git branch --contains %s' % current_stamp, capture=True)
-            if not current_stamp_exists:
+            if not utils.commands.remote_stamp_in_local_repo(remote_stamp):
                 print(red('\nWarning: deployed commit is not in your local repository.'))
 
-            # show changed files with git diff
+            # show changed files with `diff` command
             else:
-                git_diff = local('git diff --stat %s %s' % (self.stamp, current_stamp, ), capture=True)
-                git_diff = [c.strip() for c in git_diff.split('\n') if c != '']
-
-                if not git_diff:
-                    print(red('\nNo differences with current deploy (commit %s).' % current_stamp[:7]))
-                else:
-                    print(green('\nChanged files (git diff %s %s)' % (self.stamp[:7], current_stamp[:7], )))
-                    print('\n'.join(str(i) for i in git_diff))
+                Diff().run()
 
             # ask to deploy
+            self.stamp = utils.source.get_head()
             _args = (utils.source.get_branch_name(), self.stamp)
+
             question = '\nDeploy branch %s at commit %s?' % _args
 
             if not confirm(yellow(question)):
@@ -487,7 +477,7 @@ class Diff(RemoteTask):
 
     def __call__(self, *args, **kwargs):
 
-        print(green('\nChanged files with remote host.'))
+        print(green('\nChanged files compared to remote host.'))
         print(utils.commands.get_changed_files(utils.source.get_head(), env.instance_stamp))
 
 

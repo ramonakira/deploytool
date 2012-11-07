@@ -13,15 +13,19 @@ def get_folder_size(path):
 def get_changed_files(local_stamp, remote_stamp):
     """ Returns git diff from remote commit hash vs local HEAD commit hash """
 
-    git_diff = local('git diff --stat %s %s' % (remote_stamp, local_stamp, ), capture=True)
-    git_diff = [c.strip() for c in git_diff.split('\n') if c != '']
+    output = local('git diff --stat %s %s' % (remote_stamp, local_stamp, ), capture=True)
+    output = [c.strip() for c in output.split('\n') if c != '']
 
-    if not git_diff:
-        output = red('\nNo differences with current deploy.')
+    if not output:
+        return 'No changes found.'
     else:
-        output = '\n'.join(str(i) for i in git_diff)
+        return '\n'.join(str(i) for i in output)
 
-    return output
+
+def remote_stamp_in_local_repo(remote_stamp):
+    """ Check if `remote_stamp` exists in local repository """
+
+    return local('git branch --contains %s' % remote_stamp, capture=True)
 
 
 def create_tarball(vhost_path, target, file_name='archive.tar'):
