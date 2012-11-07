@@ -471,7 +471,15 @@ class Size(RemoteTask):
 
 
 class Diff(RemoteTask):
-    """ REMO - Show changed files with remote host """
+    """ REMO - Show changed files with remote host
+
+        Usage:
+
+        $ fab staging diff
+
+        # show full diff
+        $ fab staging diff:full
+    """
 
     name = 'diff'
 
