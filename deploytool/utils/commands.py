@@ -25,7 +25,10 @@ def get_changed_files(local_stamp, remote_stamp, show_full_diff=False):
     if not output:
         return 'No changes files found.'
     else:
-        return '\n'.join(str(i) for i in output) + '\n\nExecuted git diff:\n' + git_diff
+        output = '\n'.join(str(i) for i in output)
+        if show_full_diff:
+            output = output + '\n\nExecuted git diff:\n' + git_diff
+        return output
 
 
 def remote_stamp_in_local_repo(remote_stamp):
