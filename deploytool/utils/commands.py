@@ -23,7 +23,7 @@ def get_changed_files(local_stamp, remote_stamp, show_full_diff=False):
     output = [c.strip() for c in output.split('\n') if c != '']
 
     if not output:
-        return 'No changes files found.'
+        return 'No changed files found.'
     else:
         output = '\n'.join(str(i) for i in output)
         if show_full_diff:
