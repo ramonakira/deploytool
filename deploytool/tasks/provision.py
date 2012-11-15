@@ -1,13 +1,15 @@
+import os
 from datetime import datetime
+
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
 from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.tasks import Task
-import os
 
 import deploytool
+
 
 class ProvisioningTask(Task):
     """
@@ -28,9 +30,9 @@ class ProvisioningTask(Task):
         with settings(hide('running', 'stdout'), warn_only=True):
 
             # connect with provision user (who must have sudo rights on host)
-            # note that this user differs from local (e.g 'nick') or project user (e.g. 's-jouwomgeving')
+            # note that this user differs from local (e.g 'nick') or project user (e.g. 's-myproject')
             # make sure local user either knows remote password, or has its local public key on remote end
-            print(green('\nConnecting with user %s ' % magenta(env.provisioning_user)))
+            print(green('\nConnecting with user %s' % magenta(env.provisioning_user)))
             env.update({'user': env.provisioning_user})
 
             # ask for sudo session up front
@@ -83,8 +85,8 @@ class Setup(ProvisioningTask):
         'media_path',
         'project_name',
         'project_name_prefix',
-        'project_path',
-        'projects_root',
+        'vhosts_path',
+        'vhost_path',
         'provisioning_user',
         'real_fabfile',
         'scripts_path',
@@ -93,26 +95,28 @@ class Setup(ProvisioningTask):
 
     def __call__(self):
 
-        # full project name (e.g. `s-jouwomgeving`)
-        project_user = str.join('', [env.project_name_prefix, env.project_name])
+        # project user (e.g. `s-myproject`)
+        project_user = '%s%s' % (env.project_name_prefix, env.project_name)
 
         # locations of local folders (based on running fabfile.py) needed for remote file transfers
         local_scripts_path = os.path.join(os.path.dirname(deploytool.__file__), 'scripts')
         local_templates_path = os.path.join(os.path.dirname(deploytool.__file__), 'templates')
 
-        # locations of remote paths
+        # locations of remote paths - TODO: make these configable
         user_home_path = os.path.join('/', 'home', project_user)
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
-        htpasswd_path = os.path.join(env.project_path, 'htpasswd')
+        htpasswd_path = os.path.join(env.vhost_path, 'htpasswd')
         apache_conf_path = os.path.join('/', 'etc', 'httpd', 'conf.d')
         nginx_conf_path = os.path.join('/', 'etc', 'nginx', 'conf.d')
 
-        # check for existing project root/path, and abort if found
-        if not exists(env.project_root, use_sudo=True):
-            abort(red('Project root not found at: %s' % env.project_root))
-        if exists(env.project_path, use_sudo=True):
-            abort(red('Project path already exists at: %s' % env.project_path))
+        # check if vhosts path exists
+        if not exists(env.vhosts_path, use_sudo=True):
+            abort(red('vhosts path not found at: %s' % env.vhosts_path))
+
+        # check for existing vhost path, and abort if found
+        if exists(env.vhost_path, use_sudo=True):
+            abort(red('vhost path already exists at: %s' % env.vhost_path))
 
         # prompt for start
         question = '\nStart provisioning of `%s` on `%s`?' % (env.project_name, env.environment)
@@ -120,12 +124,12 @@ class Setup(ProvisioningTask):
             abort(red('\nProvisioning cancelled.'))
 
         # [1] create new project_user
-        print(green('\nCreating project user `%s` ' % project_user))
-        user_exists = bool(run('cat /etc/passwd').find(project_user) > 0)
+        print(green('\nCreating project user `%s`' % project_user))
+        user_exists = bool(run('cat /etc/passwd').find(project_user + ':') > 0)
 
         if user_exists:
             # user already exists, ask if this user is available for reuse
-            if not confirm(yellow('User `%s` already exist. Continue anyway? ' % project_user)):
+            if not confirm(yellow('User `%s` already exist. Continue anyway?' % project_user)):
                 abort(red('Aborted by user, because remote user `%s` is not available.' % project_user))
         else:
             # add new user/password
@@ -149,7 +153,7 @@ class Setup(ProvisioningTask):
         # [2] setup project folders
         print(green('\nCreating folders'))
         folders_to_create = [
-            env.project_path,
+            env.vhost_path,
             env.cache_path,
             env.log_path,
             env.media_path,
@@ -161,20 +165,20 @@ class Setup(ProvisioningTask):
 
         # [3] copy files
         print(green('\nCopying script files'))
-        files_to_copy =  os.listdir(local_scripts_path)
+        files_to_copy = os.listdir(local_scripts_path)
 
         for file_name in files_to_copy:
             put(
-                local_path = os.path.join(local_scripts_path, file_name),
-                remote_path = os.path.join(env.scripts_path, file_name),
-                use_sudo = True
+                local_path=os.path.join(local_scripts_path, file_name),
+                remote_path=os.path.join(env.scripts_path, file_name),
+                use_sudo=True
             )
 
         # ask user input for template based file creation
         # TODO: security issue for password prompt
         print(yellow('\nProvide info for file creation:'))
         database_name = prompt('Database name: ', default=project_user)
-        database_user = prompt('Database username: ', default=project_user)
+        database_user = prompt('Database username (max 16 characters for MySQL): ', default=project_user)
         database_pass = prompt('Database password: ', validate=self._validate_password)
 
         files_to_create = [
@@ -197,10 +201,10 @@ class Setup(ProvisioningTask):
         print(green('\nCreating project files'))
         for file_to_create in files_to_create:
             upload_template(
-                filename = os.path.join(local_templates_path, file_to_create['template']),
-                destination = os.path.join(env.project_path, file_to_create['file']),
-                context = context,
-                use_sudo = True
+                filename=os.path.join(local_templates_path, file_to_create['template']),
+                destination=os.path.join(env.vhost_path, file_to_create['file']),
+                context=context,
+                use_sudo=True
             )
 
         # [5] create new database + user with all schema privileges (uses database root user)
@@ -209,7 +213,7 @@ class Setup(ProvisioningTask):
             project_user
         )))
 
-        mysql_password = prompt(yellow('Password for mysql root user: '))
+        mysql_password = prompt(yellow('Password for mysql root user:'))
         mysql_command = 'mysql --batch --user=root --password=%s' % mysql_password
 
         output = sudo('%s --skip-column-names -e "SHOW DATABASES LIKE \'%s\'"' % (
@@ -219,7 +223,7 @@ class Setup(ProvisioningTask):
         database_exists = bool(output.strip().lower() == database_name.lower())
 
         if database_exists:
-            if not confirm(yellow('Database `%s` already exists. Continue anyway? ' % database_name)):
+            if not confirm(yellow('Database `%s` already exists. Continue anyway?' % database_name)):
                 abort(red('Aborted by user, because database `%s` already exists.' % database_name))
 
         # all is well, and user is ok should database already exist
@@ -227,11 +231,12 @@ class Setup(ProvisioningTask):
 
         # [6] ask for optional setup of .htpasswd (used for staging environment)
         if confirm(yellow('\nSetup htpasswd for project?')):
+            htusername = env.project_name
             htpasswd = '%s%s' % (env.project_name, datetime.now().year)
             sudo('mkdir %s' % htpasswd_path)
 
             with cd(htpasswd_path):
-                sudo('htpasswd -bc .htpasswd %s %s' % (env.project_name, htpasswd))
+                sudo('htpasswd -bc .htpasswd %s %s' % (htusername, htpasswd))
 
         # [7] create webserver conf files
         print(green('\nCreating vhost conf files'))
@@ -260,7 +265,7 @@ class Setup(ProvisioningTask):
             'website_name': env.website_name,
             'project_name': env.project_name,
             'project_name_prefix': env.project_name_prefix,
-            'project_path': env.project_path,
+            'vhost_path': env.vhost_path,
             'log_path': env.log_path,
             'admin_email': env.admin_email,
             'project_user': project_user,
@@ -269,23 +274,23 @@ class Setup(ProvisioningTask):
 
         # create the conf files from template and transfer them to remote server
         upload_template(
-            filename = os.path.join(local_templates_path, 'apache_vhost.txt'),
-            destination = os.path.join(apache_conf_path, 'vhosts-%s.conf' % project_user),
-            context = context,
-            use_sudo = True
+            filename=os.path.join(local_templates_path, 'apache_vhost.txt'),
+            destination=os.path.join(apache_conf_path, 'vhosts-%s.conf' % project_user),
+            context=context,
+            use_sudo=True
         )
         upload_template(
-            filename = os.path.join(local_templates_path, 'nginx_vhost.txt'),
-            destination = os.path.join(nginx_conf_path, 'vhosts-%s.conf' % project_user),
-            context = context,
-            use_sudo = True
+            filename=os.path.join(local_templates_path, 'nginx_vhost.txt'),
+            destination=os.path.join(nginx_conf_path, 'vhosts-%s.conf' % project_user),
+            context=context,
+            use_sudo=True
         )
 
         # chown project for project user
-        print(green('\nChanging ownership of %s to `%s`' % (env.project_path, project_user)))
-        sudo('chown -R %s:%s %s' % (project_user, project_user, env.project_path))
+        print(green('\nChanging ownership of %s to `%s`' % (env.vhost_path, project_user)))
+        sudo('chown -R %s:%s %s' % (project_user, project_user, env.vhost_path))
 
-        # [8] prompt for webserver restart 
+        # [8] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
             sudo('/etc/init.d/httpd configtest')
@@ -333,7 +338,6 @@ class Keys(ProvisioningTask):
         local_ssh_path = os.path.join('/', 'home', env.local_user, '.ssh')
         local_ssh_files = os.listdir(local_ssh_path)
         local_key_files = [f for f in local_ssh_files if f[-4:] == '.pub']
-        selected_key_nr = 0
         remote_auth_keys = os.path.join('/', 'home', project_user, '.ssh', 'authorized_keys')
 
         if not local_key_files:
@@ -351,12 +355,16 @@ class Keys(ProvisioningTask):
             else:
                 print('[%s] %s' % (green(index), file))
 
-        print('\n[a] enable all local keys')
+        print('\n[s] show all remote authorized keys')
+        print('[a] enable all local keys')
         print('[d] disable all remote keys')
-        print('[s] show all remote authorized keys')
-        selection = prompt(yellow('\nSelect option:'), default='a')
+        selection = prompt(yellow('\nSelect option:'), default='s')
 
-        if selection == 'a':
+        if selection == 's':
+            print(green('\nRemote authorized keys:'))
+            print(sudo('cat %s' % remote_auth_keys) or red('[empty]'))
+
+        elif selection == 'a':
             for file in local_key_files:
                 # grab key from selection (if multiple) or default (if single)
                 key_file = os.path.join(local_ssh_path, file)
@@ -369,10 +377,6 @@ class Keys(ProvisioningTask):
             sudo('touch %s' % remote_auth_keys)
             sudo('chmod -R 700 %s' % remote_auth_keys)
             sudo('chown %s:%s %s' % (project_user, project_user, remote_auth_keys))
-
-        elif selection == 's':
-            print(green('\nRemote authorized keys:'))
-            print(sudo('cat %s' % remote_auth_keys) or red('[empty]'))
 
         else:
             try:

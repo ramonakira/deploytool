@@ -5,21 +5,20 @@ import deploytool.tasks as tasks
 
 project_items = {
     'admin_email': 'info@example.com',
-    'project_name': 'example',
+    'project_name': 'myproject',
+    'vhosts_path': os.path.join('/', 'path', 'to', 'projects'),
     'provisioning_user': 'sudoer',
-    'projects_root': os.path.join('/', 'path', 'to', 'projects'),
     'hosts': ['192.168.1.1', ],
 }.items()
 
 local_items = {
-    'website_name': 'www.example.com.dev',
     'project_name_prefix': 'd-',
     'environment': 'local',
     'hosts': ['127.0.0.1', ],
 }.items()
 
 staging_items = {
-    'website_name': 'subdomain.example.com',
+    'website_name': 'staging.example.com',
     'project_name_prefix': 's-',
     'environment': 'staging',
 }.items()
@@ -40,8 +39,10 @@ deploy = tasks.remote.Deployment()
 rollback = tasks.remote.Rollback()
 status = tasks.remote.Status()
 size = tasks.remote.Size()
-database = tasks.remote.Database()
+diff = tasks.remote.Diff()
 media = tasks.remote.Media()
+database = tasks.remote.Database()
+test = tasks.remote.Test()
 
 # provisioning
 setup = tasks.provision.Setup()

@@ -1,4 +1,6 @@
+import os
 from datetime import datetime
+
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
@@ -6,7 +8,6 @@ from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.operations import open_shell
 from fabric.tasks import Task
-import os
 
 import deploytool.utils as utils
 
@@ -21,7 +22,7 @@ class RemoteHost(Task):
         'hosts',
         'project_name',
         'project_name_prefix',
-        'projects_root',
+        'vhosts_path',
     ]
 
     def __init__(self, *args, **kwargs):
@@ -40,23 +41,22 @@ class RemoteHost(Task):
         # check if all required project settings are present in fabric environment
         [require(r) for r in self.requirements]
 
-        project_name = '%s%s' % (env.project_name_prefix, env.project_name)
-        project_path = os.path.join(env.projects_root, project_name)
+        vhost_folder = '%s%s' % (env.project_name_prefix, env.project_name)
+        vhost_path = os.path.join(env.vhosts_path, vhost_folder)
 
         print(green('\nInitializing fabric environment for %s.' % magenta(self.name)))
         env.update({
-            'cache_path': os.path.join(project_path, 'cache'),
-            'current_instance_path': os.path.join(project_path, 'current_instance'),
-            'database_name': project_name,
+            'cache_path': os.path.join(vhost_path, 'cache'),
+            'current_instance_path': os.path.join(vhost_path, 'current_instance'),
+            'database_name': env.project_name,
             'environment': env.environment,
             'hosts': env.hosts,
-            'log_path': os.path.join(project_path, 'log'),
-            'media_path': os.path.join(project_path, 'media'),
-            'previous_instance_path': os.path.join(project_path, 'previous_instance'),
-            'project_root': env.projects_root,
-            'project_path': project_path,
-            'scripts_path': os.path.join(project_path, 'scripts'),
-            'user': project_name,
+            'log_path': os.path.join(vhost_path, 'log'),
+            'media_path': os.path.join(vhost_path, 'media'),
+            'previous_instance_path': os.path.join(vhost_path, 'previous_instance'),
+            'vhost_path': vhost_path,
+            'scripts_path': os.path.join(vhost_path, 'scripts'),
+            'user': '%s%s' % (env.project_name_prefix, env.project_name),
         })
 
 
@@ -68,7 +68,7 @@ class RemoteTask(Task):
     """
 
     requirements = [
-        'project_path',
+        'vhost_path',
         'project_name',
     ]
 
@@ -80,7 +80,7 @@ class RemoteTask(Task):
     def log(self, success):
         """ Single line task logging to ./log/fabric.log """
 
-        if success == True:
+        if success is True:
             result = 'success'
         else:
             result = 'failed'
@@ -119,13 +119,14 @@ class RemoteTask(Task):
             [require(r) for r in self.requirements]
 
             # update fabric environment for instance settings
-            instance_path = os.path.join(env.project_path, self.stamp)
+            instance_path = os.path.join(env.vhost_path, self.stamp)
             env.update({
                 'backup_path': os.path.join(instance_path, 'backup'),
                 'instance_stamp': self.stamp,
                 'instance_path': instance_path,
                 'source_path': os.path.join(instance_path, env.project_name),
-                'project_source_path': os.path.join(instance_path, env.project_name, getattr(env, 'project_source_folder', '')),
+                'project_path': os.path.join(instance_path, env.project_name),
+                'project_project_path': os.path.join(instance_path, env.project_name, env.project_name),
                 'virtualenv_path': os.path.join(instance_path, 'env'),
             })
 
@@ -139,14 +140,8 @@ class Deployment(RemoteTask):
 
         Usage:
 
-        # default deployment using current git HEAD
-        $ fab staging.deploy
-
-        # deployment for a specific git branch
-        $ fab staging.deploy:branch=my-branch
-
-        # deployment for a specific git commit ID
-        $ fab staging.deploy:commit=1ec9d293ce54647df7f15ee7c0295b8eb2a5cbef
+        # deployment using current git HEAD
+        $ fab staging deploy
     """
 
     name = 'deploy'
@@ -155,29 +150,35 @@ class Deployment(RemoteTask):
         """
         Load instance from CLI kwargs
 
-            default => deploy by HEAD for current branch by default
-            commit  => deploy by commit SHA1 ID
-            branch  => deploy by HEAD for branch
+            deploy by HEAD for current branch
         """
 
         with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 
-            # deploy by local commit
-            if kwargs.has_key('commit'):
-                self.stamp = kwargs['commit']
+            # check if remote stamp exists in local repo
+            current_instance = utils.commands.read_link(env.current_instance_path)
+            remote_stamp = utils.instance.get_instance_stamp(current_instance)
 
-            # deploy by HEAD for branch
-            elif kwargs.has_key('branch'):
-                self.stamp = utils.source.get_commit_id(kwargs['branch'])
+            # first deploy to remote
+            if not remote_stamp:
+                print(green('\nFirst deploy to remote.'))
 
-            # deploy by local HEAD for local current branch
+            # deployed commit is not in your local repository
+            elif remote_stamp and not utils.commands.remote_stamp_in_local_repo(remote_stamp):
+                print(red('\nWarning: deployed commit is not in your local repository.'))
+
+            # show changed files with `diff` command
             else:
-                self.stamp = utils.source.get_head()
-                _args = (utils.source.get_branch_name(), self.stamp)
-                question = '\nDeploy branch %s at commit %s?' % _args
+                Diff().run()
 
-                if not confirm(yellow(question)):
-                    abort(red('Aborted deployment. Run `fab -d %s` for options.' % self.name))
+            # ask to deploy
+            self.stamp = utils.source.get_head()
+            _args = (utils.source.get_branch_name(), self.stamp)
+
+            question = '\nDeploy branch %s at commit %s?' % _args
+
+            if not confirm(yellow(question)):
+                abort(red('Aborted deployment. Run `fab -d %s` for options.' % self.name))
 
         super(Deployment, self).run(*args, **kwargs)
 
@@ -243,17 +244,18 @@ class Deployment(RemoteTask):
             if ('before_pip_install' in env):
                 env.before_pip_install(env, *args, **kwargs)
 
-            if exists(os.path.join(getattr(env, 'project_source_folder', '.'), '*.pth')):
+            if exists(os.path.join(env.project_path, '*.pth')):
                 print(green('\nCopying .pth files.'))
                 utils.commands.copy(
-                    from_path=os.path.join(getattr(env, 'project_source_folder', '.'), '*.pth'),
+                    from_path=os.path.join(env.project_path, '*.pth'),
                     to_path='%s/lib/python2.6/site-packages' % env.virtualenv_path
                 )
 
             print(green('\nPip installing requirements.'))
+            # TODO: use requirements_path instead of project_path?
             utils.instance.pip_install_requirements(
                 env.virtualenv_path,
-                env.project_source_path,
+                env.project_path,
                 env.cache_path,
                 env.log_path
             )
@@ -269,20 +271,20 @@ class Deployment(RemoteTask):
 
             print(green('\nCopying settings.py.'))
             utils.commands.copy(
-                from_path = os.path.join(env.project_path, 'settings.py'),
-                to_path = os.path.join(env.project_source_path, 'settings.py')
+                from_path=os.path.join(env.vhost_path, 'settings.py'),
+                to_path=os.path.join(env.project_project_path, 'settings.py')
             )
 
             print(green('\nLinking media folder.'))
             utils.commands.create_symbolic_link(
-                real_path = os.path.join(env.project_path, 'media'),
-                symbolic_path = os.path.join(env.project_source_path, 'media')
+                real_path=os.path.join(env.vhost_path, 'media'),
+                symbolic_path=os.path.join(env.project_path, 'media')
             )
 
             print(green('\nCollecting static files.'))
             utils.commands.django_manage(
                 env.virtualenv_path,
-                env.project_source_path,
+                env.project_path,
                 'collectstatic --link --noinput --verbosity=0 --traceback'
             )
         except:
@@ -314,7 +316,7 @@ class Deployment(RemoteTask):
                     env.before_syncdb(env, *args, **kwargs)
 
                 print(green('\nSyncing database.'))
-                utils.commands.django_manage(env.virtualenv_path, env.project_source_path, 'syncdb')
+                utils.commands.django_manage(env.virtualenv_path, env.project_path, 'syncdb')
                 print('')
 
                 # before_migrate pause
@@ -327,7 +329,7 @@ class Deployment(RemoteTask):
                     env.before_migrate(env, *args, **kwargs)
 
                 print(green('\nMigrating database.'))
-                utils.commands.django_manage(env.virtualenv_path, env.project_source_path, 'migrate')
+                utils.commands.django_manage(env.virtualenv_path, env.project_path, 'migrate')
                 print('')
 
             print(green('\nBacking up database at end.'))
@@ -361,10 +363,10 @@ class Deployment(RemoteTask):
             env.before_restart(env, *args, **kwargs)
 
         print(green('\nUpdating instance symlinks.'))
-        utils.instance.set_current_instance(env.project_path, env.instance_path)
+        utils.instance.set_current_instance(env.vhost_path, env.instance_path)
 
         print(green('\nRestarting website.'))
-        utils.commands.touch_wsgi(env.project_path)
+        utils.commands.touch_wsgi(env.vhost_path)
 
         # after_restart pause
         if ('after_restart' in pause_at):
@@ -381,19 +383,17 @@ class Deployment(RemoteTask):
     def prune_instances(self):
         """ Find old instances and remove them to free up space """
 
-        print(green('\nRemoving old instances from remote filesystem.'))
-
-        old_instances = utils.instance.get_obsolete_instances(env.project_path)
+        old_instances = utils.instance.get_obsolete_instances(env.vhost_path)
 
         for instance in old_instances:
             is_current = bool(utils.instance.get_instance_stamp(env.current_instance_path) == instance)
             is_previous = bool(utils.instance.get_instance_stamp(env.previous_instance_path) == instance)
 
             if not (is_current or is_previous):
-                utils.commands.delete(os.path.join(env.project_path, instance))
+                utils.commands.delete(os.path.join(env.vhost_path, instance))
 
         if len(old_instances) > 0:
-            print(green('These old instances were removed:'))
+            print(green('\nThese old instances were removed from remote filesystem:'))
             print(old_instances)
 
 
@@ -420,10 +420,10 @@ class Rollback(RemoteTask):
             )
 
             print(green('\nRemoving this instance and set previous to current.'))
-            utils.instance.rollback(env.project_path)
+            utils.instance.rollback(env.vhost_path)
 
             print(green('\nRestarting website.'))
-            utils.commands.touch_wsgi(env.project_path)
+            utils.commands.touch_wsgi(env.vhost_path)
 
             print(green('\nRemoving this instance from filesystem.'))
             utils.commands.delete(env.instance_path)
@@ -474,6 +474,29 @@ class Size(RemoteTask):
         print(utils.commands.get_folder_size(env.project_path))
 
 
+class Diff(RemoteTask):
+    """ REMO - Show changed files with remote host
+
+        Usage:
+
+        $ fab staging diff
+
+        # show full diff
+        $ fab staging diff:full
+    """
+
+    name = 'diff'
+
+    def __call__(self, *args, **kwargs):
+
+        show_full_diff = False
+        if 'full' in args:
+            show_full_diff = True
+
+        print(green('\nChanged files compared to remote host.'))
+        print(utils.commands.get_changed_files(utils.source.get_head(), env.instance_stamp, show_full_diff))
+
+
 class Media(RemoteTask):
     """ REMO - Download media files (as archive) """
 
@@ -485,12 +508,12 @@ class Media(RemoteTask):
         cwd = os.getcwd()
 
         print(green('\nCompressing remote media folder.'))
-        utils.commands.create_tarball(env.project_path, 'media', file_name)
+        utils.commands.create_tarball(env.vhost_path, 'media', file_name)  # TODO: media_path?
 
         print(green('\nDownloading tarball.'))
         utils.commands.download_file(
-            remote_path = os.path.join(env.project_path, file_name),
-            local_path = os.path.join(cwd, file_name)
+            remote_path=os.path.join(env.vhost_path, file_name),
+            local_path=os.path.join(cwd, file_name)
         )
 
         print(green('\nSaved media tarball to:'))
@@ -517,9 +540,33 @@ class Database(RemoteTask):
 
         print(green('\nDownloading and removing remote backup.'))
         utils.commands.download_file(
-            remote_path = os.path.join(env.backup_path, file_name),
-            local_path = os.path.join(os.getcwd(), file_name)
+            remote_path=os.path.join(env.backup_path, file_name),
+            local_path=os.path.join(os.getcwd(), file_name)
         )
 
         print(green('\nSaved backup to:'))
         print(os.path.join(cwd, file_name))
+
+
+class Test(RemoteTask):
+    """ REMO - Test task for testing pauses and hooks """
+
+    name = 'test'
+
+    def __call__(self, *args, **kwargs):
+
+        """
+        parse optional 'pause' argument, can be given like this:
+
+        fab staging test:pause=test
+        """
+        pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
+
+        # test pause
+        if ('test' in pause_at):
+            print(green('\nOpening remote shell - test.'))
+            open_shell()
+
+        # test hook
+        if ('test' in env):
+            env.test(env, *args, **kwargs)
