@@ -159,7 +159,12 @@ class Deployment(RemoteTask):
             current_instance = utils.commands.read_link(env.current_instance_path)
             remote_stamp = utils.instance.get_instance_stamp(current_instance)
 
-            if not utils.commands.remote_stamp_in_local_repo(remote_stamp):
+            # first deploy to remote
+            if not remote_stamp:
+                print(green('\nFirst deploy to remote.'))
+
+            # deployed commit is not in your local repository
+            elif remote_stamp and not utils.commands.remote_stamp_in_local_repo(remote_stamp):
                 print(red('\nWarning: deployed commit is not in your local repository.'))
 
             # show changed files with `diff` command
