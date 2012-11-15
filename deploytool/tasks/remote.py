@@ -210,14 +210,45 @@ class Deployment(RemoteTask):
             for folder in folders_to_create:
                 utils.commands.create_folder(folder)
 
+            # before_deploy_source pause
+            if ('before_deploy_source' in pause_at):
+                print(green('\nOpening remote shell - before_deploy_source.'))
+                open_shell()
+
+            # before_deploy_source hook
+            if ('before_deploy_source' in env):
+                env.before_deploy_source(env, *args, **kwargs)
+
             print(green('\nDeploying source.'))
             utils.source.transfer_source(upload_path=env.source_path, tree=self.stamp)
+
+            # before_create_virtualenv pause
+            if ('before_create_virtualenv' in pause_at):
+                print(green('\nOpening remote shell - before_create_virtualenv.'))
+                open_shell()
+
+            # before_create_virtualenv hook
+            if ('before_create_virtualenv' in env):
+                env.before_create_virtualenv(env, *args, **kwargs)
 
             print(green('\nCreating virtual environment.'))
             utils.instance.create_virtualenv(env.virtualenv_path, env.user)
 
-            print(green('\nCopying .pth files.'))
-            put('%s/*.pth' % getattr(env, 'project_source_folder', '.'), '%s/lib/python2.6/site-packages' % env.virtualenv_path)
+            # before_pip_install pause
+            if ('before_pip_install' in pause_at):
+                print(green('\nOpening remote shell - before_pip_install.'))
+                open_shell()
+
+            # before_pip_install hook
+            if ('before_pip_install' in env):
+                env.before_pip_install(env, *args, **kwargs)
+
+            if exists(os.path.join(getattr(env, 'project_source_folder', '.'), '*.pth')):
+                print(green('\nCopying .pth files.'))
+                utils.commands.copy(
+                    from_path=os.path.join(getattr(env, 'project_source_folder', '.'), '*.pth'),
+                    to_path='%s/lib/python2.6/site-packages' % env.virtualenv_path
+                )
 
             print(green('\nPip installing requirements.'))
             utils.instance.pip_install_requirements(
@@ -226,6 +257,15 @@ class Deployment(RemoteTask):
                 env.cache_path,
                 env.log_path
             )
+
+            # after_pip_install pause
+            if ('after_pip_install' in pause_at):
+                print(green('\nOpening remote shell - after_pip_install.'))
+                open_shell()
+
+            # after_pip_install hook
+            if ('after_pip_install' in env):
+                env.after_pip_install(env, *args, **kwargs)
 
             print(green('\nCopying settings.py.'))
             utils.commands.copy(
@@ -263,17 +303,28 @@ class Deployment(RemoteTask):
             )
 
             with settings(show('stdout')):
+
+                # before_syncdb pause
                 if ('before_syncdb' in pause_at):
-                    print(green('\nOpening remote shell.'))
+                    print(green('\nOpening remote shell - before_syncdb.'))
                     open_shell()
+
+                # before_syncdb hook
+                if ('before_syncdb' in env):
+                    env.before_syncdb(env, *args, **kwargs)
 
                 print(green('\nSyncing database.'))
                 utils.commands.django_manage(env.virtualenv_path, env.project_source_path, 'syncdb')
                 print('')
 
+                # before_migrate pause
                 if ('before_migrate' in pause_at):
-                    print(green('\nOpening remote shell.'))
+                    print(green('\nOpening remote shell - before_migrate.'))
                     open_shell()
+
+                # before_migrate hook
+                if ('before_migrate' in env):
+                    env.before_migrate(env, *args, **kwargs)
 
                 print(green('\nMigrating database.'))
                 utils.commands.django_manage(env.virtualenv_path, env.project_source_path, 'migrate')
@@ -300,9 +351,14 @@ class Deployment(RemoteTask):
 
             abort(red('Deploy failed and was rolled back.'))
 
+        # before_restart pause
         if ('before_restart' in pause_at):
-            print(green('\nOpening remote shell.'))
+            print(green('\nOpening remote shell - before_restart.'))
             open_shell()
+
+        # before_restart hook
+        if ('before_restart' in env):
+            env.before_restart(env, *args, **kwargs)
 
         print(green('\nUpdating instance symlinks.'))
         utils.instance.set_current_instance(env.project_path, env.instance_path)
@@ -310,15 +366,22 @@ class Deployment(RemoteTask):
         print(green('\nRestarting website.'))
         utils.commands.touch_wsgi(env.project_path)
 
+        # after_restart pause
         if ('after_restart' in pause_at):
-            print(green('\nOpening remote shell.'))
+            print(green('\nOpening remote shell - after_restart.'))
             open_shell()
+
+        # after_restart hook
+        if ('after_restart' in env):
+            env.after_restart(env, *args, **kwargs)
 
         self.log(success=True)
         self.prune_instances()
 
     def prune_instances(self):
         """ Find old instances and remove them to free up space """
+
+        print(green('\nRemoving old instances from remote filesystem.'))
 
         old_instances = utils.instance.get_obsolete_instances(env.project_path)
 
@@ -330,7 +393,7 @@ class Deployment(RemoteTask):
                 utils.commands.delete(os.path.join(env.project_path, instance))
 
         if len(old_instances) > 0:
-            print(green('\nThese old instances were removed from remote filesystem:'))
+            print(green('These old instances were removed:'))
             print(old_instances)
 
 
@@ -379,9 +442,6 @@ class Status(RemoteTask):
 
     def __call__(self, *args, **kwargs):
 
-        print(green('\nCurrent size of entire project:'))
-        print(utils.commands.get_folder_size(env.project_path))
-
         print(green('\nCurrent instance:'))
         current_instance = utils.commands.read_link(env.current_instance_path)
         if current_instance != env.current_instance_path:
@@ -401,6 +461,17 @@ class Status(RemoteTask):
             print(utils.commands.tail_file(os.path.join(env.log_path, 'fabric.log')))
         else:
             print(red('[empty]'))
+
+
+class Size(RemoteTask):
+    """ REMO - Show project size on remote host """
+
+    name = 'size'
+
+    def __call__(self, *args, **kwargs):
+
+        print(green('\nCurrent size of entire project:'))
+        print(utils.commands.get_folder_size(env.project_path))
 
 
 class Media(RemoteTask):
