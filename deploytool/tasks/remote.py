@@ -528,7 +528,7 @@ class Database(RemoteTask):
     def __call__(self, *args, **kwargs):
 
         timestamp = datetime.today().strftime('%y%m%d%H%M')
-        file_name = '%s_%s.sql' % (env.database_name, timestamp)
+        file_name = '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
         cwd = os.getcwd()
 
         print(green('\nCreating backup.'))
