@@ -4,9 +4,9 @@ import sys
 from credentials import *
 
 
-command = 'mysqldump --user="%s" --password="%s" "%s" > %s' % (
+command = 'mysqldump --user=\'%s\' --password=\'%s\' \'%s\' > %s' % (
     username,
-    password,
+    password.replace("'", "\\'"),
     database,
     sys.argv[1]
 )
