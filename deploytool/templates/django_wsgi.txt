@@ -5,9 +5,9 @@ import os
 sys.path.append('%(current_instance_path)s')
 sys.path.append('%(current_instance_path)s/%(project_name)s')
 sys.path.append('%(current_instance_path)s/%(project_name)s/%(project_name)s')
-sys.path.append('%(current_instance_path)s/env/lib/python2.6/site-packages')
+sys.path.append('%(current_instance_path)s/env/lib/python%(python_version)s/site-packages')
 
-site.addsitedir('%(current_instance_path)s/env/lib/python2.6/site-packages')
+site.addsitedir('%(current_instance_path)s/env/lib/python%(python_version)s/site-packages')
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "%(project_name)s.settings")
 os.environ.setdefault("PYTHON_EGG_CACHE", "%(cache_path)s")

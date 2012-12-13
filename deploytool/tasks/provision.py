@@ -110,6 +110,7 @@ class Setup(ProvisioningTask):
         nginx_conf_path = os.path.join('/', 'etc', 'nginx', 'conf.d')
         apache_conf_path = self.get_apache_conf_path()
         apache_daemon = self.get_apache_daemon()
+        python_version = self.get_python_version()
 
         # check if vhosts path exists
         if not exists(env.vhosts_path, use_sudo=True):
@@ -197,6 +198,7 @@ class Setup(ProvisioningTask):
             'database_name': database_name,
             'username': database_user,
             'password': database_pass,
+            'python_version': python_version,
         }
 
         # [4] create files from templates (using fabric env and user input)
@@ -361,6 +363,15 @@ class Setup(ProvisioningTask):
                 return path
 
         return None
+
+    def get_python_version(self):
+        """
+        Return python version as <major>.<minor> string.
+        E.g. '2.6'
+        """
+        command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
+
+        return run(command)
 
 
 class Keys(ProvisioningTask):
