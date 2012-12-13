@@ -59,6 +59,8 @@ class RemoteHost(Task):
             'user': '%s%s' % (env.project_name_prefix, env.project_name),
         })
 
+        env.setdefault('project_path_name', env.project_name)
+
 
 class RemoteTask(Task):
     """
@@ -126,7 +128,7 @@ class RemoteTask(Task):
                 'instance_path': instance_path,
                 'source_path': os.path.join(instance_path, env.project_name),
                 'project_path': os.path.join(instance_path, env.project_name),
-                'project_project_path': os.path.join(instance_path, env.project_name, env.project_name),
+                'project_project_path': os.path.join(instance_path, env.project_name, env.project_path_name),
                 'virtualenv_path': os.path.join(instance_path, 'env'),
             })
 

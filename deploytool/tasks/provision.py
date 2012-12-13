@@ -199,6 +199,7 @@ class Setup(ProvisioningTask):
             'username': database_user,
             'password': database_pass,
             'python_version': python_version,
+            'project_path_name': env.project_path_name,
         }
 
         # [4] create files from templates (using fabric env and user input)
