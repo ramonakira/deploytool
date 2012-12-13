@@ -60,6 +60,8 @@ class RemoteHost(Task):
             'compass_version': env.compass_version if 'compass_version' in env else None,
         })
 
+        env.setdefault('project_path_name', env.project_name)
+
 
 class RemoteTask(Task):
     """
@@ -127,7 +129,7 @@ class RemoteTask(Task):
                 'instance_path': instance_path,
                 'source_path': os.path.join(instance_path, env.project_name),
                 'project_path': os.path.join(instance_path, env.project_name),
-                'project_project_path': os.path.join(instance_path, env.project_name, env.project_name),
+                'project_project_path': os.path.join(instance_path, env.project_name, env.project_path_name),
                 'virtualenv_path': os.path.join(instance_path, 'env'),
             })
 
