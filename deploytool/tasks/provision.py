@@ -250,9 +250,10 @@ class Setup(ProvisioningTask):
                 'awk \'{if (NR==1) { print substr($2,3) }}\''
             ))
             new_port_nr = int(output) + 1
-            print('Port %s will be used for this project' % magenta(new_port_nr))
         except:
-            abort(red('Aborted. No available port # for vhost found.'))
+            new_port_nr = 8000
+
+        print('Port %s will be used for this project' % magenta(new_port_nr))
 
         # check if htpasswd is used (some nginx vhost lines will be commented if it isn't)
         if not exists(htpasswd_path, use_sudo=True):
