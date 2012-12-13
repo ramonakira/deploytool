@@ -133,7 +133,8 @@ class Setup(ProvisioningTask):
                 abort(red('Aborted by user, because remote user `%s` is not available.' % project_user))
         else:
             # add new user/password
-            sudo('useradd %s' % project_user)
+            # Option -m makes sure a homedirectory is created.
+            sudo('useradd -m %s' % project_user)
             with(show('stdout')):
                 sudo('passwd %s' % project_user)
                 print('')
