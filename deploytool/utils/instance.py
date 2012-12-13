@@ -36,10 +36,10 @@ def restore_database(virtualenv_path, scripts_path, file_path):
     commands.sql_execute_file(env.virtualenv_path, env.scripts_path, file_path)
 
 
-def create_virtualenv(virtualenv_path, project_user):
+def create_virtualenv(virtualenv_path):
     """ Creates virtual environment for instance """
 
-    run('virtualenv %s -p python2.6 --no-site-packages' % virtualenv_path)
+    run('virtualenv %s --no-site-packages' % virtualenv_path)
 
 
 def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log_path):
