@@ -107,8 +107,9 @@ class Setup(ProvisioningTask):
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
         htpasswd_path = os.path.join(env.vhost_path, 'htpasswd')
-        apache_conf_path = os.path.join('/', 'etc', 'httpd', 'conf.d')
         nginx_conf_path = os.path.join('/', 'etc', 'nginx', 'conf.d')
+        apache_conf_path = self.get_apache_conf_path()
+        apache_daemon = self.get_apache_daemon()
 
         # check if vhosts path exists
         if not exists(env.vhosts_path, use_sudo=True):
@@ -295,13 +296,13 @@ class Setup(ProvisioningTask):
         # [8] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
-            sudo('/etc/init.d/httpd configtest')
+            sudo('%s configtest' % apache_daemon)
             sudo('/etc/init.d/nginx configtest')
             print('')
 
         if confirm(yellow('\nOK to restart webserver?')):
             with settings(show('stdout')):
-                sudo('/etc/init.d/httpd restart')
+                sudo('%s restart' % apache_daemon)
                 sudo('/etc/init.d/nginx restart')
                 print('')
         else:
@@ -316,6 +317,50 @@ class Setup(ProvisioningTask):
             raise Exception(red('Please enter a valid password of at least %s characters' % min_length_required))
 
         return password.strip()
+
+    def get_apache_conf_path(self):
+        """
+        Get the apache conf path.
+        The path is /etc/httpd/conf.d on Centos and /etc/apache2/conf.f on Ubuntu
+
+        If no path is found, then abort.
+        """
+        apache_conf_path = self.find_first_existing_path(
+            os.path.join('/', 'etc', 'httpd', 'conf.d'),
+            os.path.join('/', 'etc', 'apache2', 'conf.d')
+        )
+
+        if apache_conf_path:
+            return apache_conf_path
+        else:
+            abort(red('apache conf path not found'))
+
+    def get_apache_daemon(self):
+        """
+        Get apache daemon.
+        The daemon is /etc/init.d/httpd on Centos and /etc/init.d/apache2 on Ubuntu
+
+        If no path is found, then abort.
+        """
+        apache_daemon = self.find_first_existing_path(
+            os.path.join('/', 'etc', 'init.d', 'httpd'),
+            os.path.join('/', 'etc', 'init.d', 'apache2')
+        )
+
+        if apache_daemon:
+            return apache_daemon
+        else:
+            abort(red('apache daemon not found'))
+
+    def find_first_existing_path(self, *paths):
+        """
+        Find the first path that exists. If no path is found, return None.
+        """
+        for path in paths:
+            if exists(path):
+                return path
+
+        return None
 
 
 class Keys(ProvisioningTask):
