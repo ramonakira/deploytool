@@ -233,7 +233,7 @@ class Deployment(RemoteTask):
                 env.before_create_virtualenv(env, *args, **kwargs)
 
             print(green('\nCreating virtual environment.'))
-            utils.instance.create_virtualenv(env.virtualenv_path, env.user)
+            utils.instance.create_virtualenv(env.virtualenv_path)
 
             # before_pip_install pause
             if ('before_pip_install' in pause_at):
