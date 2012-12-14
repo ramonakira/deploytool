@@ -472,6 +472,7 @@ class Size(RemoteTask):
 
         print(green('\nCurrent size of entire project:'))
         print(utils.commands.get_folder_size(env.project_path))
+        print(utils.commands.get_folder_size(env.media_path))
 
 
 class Diff(RemoteTask):
