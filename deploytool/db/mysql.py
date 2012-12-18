@@ -4,6 +4,7 @@ from fabric.operations import prompt, sudo
 
 class DatabaseOperations(object):
     needs_password = True
+    engine_name = 'mysql'
 
     def __init__(self):
         self.root_password = prompt(yellow('Password for mysql root user:'))
