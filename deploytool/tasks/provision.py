@@ -335,7 +335,7 @@ class Keys(ProvisioningTask):
     def __call__(self):
 
         project_user = env.project_name_prefix + env.project_name
-        local_ssh_path = os.path.join('/', 'home', env.local_user, '.ssh')
+        local_ssh_path = os.path.join(os.environ['HOME'], '.ssh')
         local_ssh_files = os.listdir(local_ssh_path)
         local_key_files = [f for f in local_ssh_files if f[-4:] == '.pub']
         remote_auth_keys = os.path.join('/', 'home', project_user, '.ssh', 'authorized_keys')
