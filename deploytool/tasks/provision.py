@@ -296,7 +296,7 @@ class Setup(ProvisioningTask):
         # [8] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
-            sudo('%s configtest' % apache_daemon)
+            self.run_apache_configtest()
             sudo('/etc/init.d/nginx configtest')
             print('')
 
@@ -370,6 +370,15 @@ class Setup(ProvisioningTask):
         command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
 
         return run(command)
+
+    def run_apache_configtest(self):
+        """
+        Return apache configtest using apachectl or apache daemon.
+        """
+        if run('which apachectl', quiet=True):
+            sudo('apachectl configtest')
+        else:
+            sudo('%s configtest' % self.get_apache_daemon())
 
 
 class Keys(ProvisioningTask):
