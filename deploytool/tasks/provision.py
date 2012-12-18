@@ -9,6 +9,7 @@ from fabric.operations import require
 from fabric.tasks import Task
 
 import deploytool
+from deploytool.db.mysql import DatabaseOperations
 
 
 class ProvisioningTask(Task):
@@ -188,7 +189,6 @@ class Setup(ProvisioningTask):
             {'template': 'settings_py.txt', 'file': 'settings.py', },
             {'template': 'credentials_py.txt', 'file': 'scripts/credentials.py', },
             {'template': 'django_wsgi.txt', 'file': 'django.wsgi', },
-            {'template': 'provision_db_sql.txt', 'file': 'scripts/provision_db.sql', },
         ]
 
         context = {
@@ -218,21 +218,14 @@ class Setup(ProvisioningTask):
             project_user
         )))
 
-        mysql_password = prompt(yellow('Password for mysql root user:'))
-        mysql_command = 'mysql --batch --user=root --password=%s' % mysql_password
+        database_operations = DatabaseOperations()
 
-        output = sudo('%s --skip-column-names -e "SHOW DATABASES LIKE \'%s\'"' % (
-            mysql_command,
-            database_name
-        ))
-        database_exists = bool(output.strip().lower() == database_name.lower())
-
-        if database_exists:
+        if database_operations.database_exists(database_name):
             if not confirm(yellow('Database `%s` already exists. Continue anyway?' % database_name)):
                 abort(red('Aborted by user, because database `%s` already exists.' % database_name))
 
         # all is well, and user is ok should database already exist
-        sudo('%s < %s' % (mysql_command, os.path.join(env.scripts_path, 'provision_db.sql')))
+        database_operations.create_database(database_name, database_user, database_pass)
 
         # [6] ask for optional setup of .htpasswd (used for staging environment)
         if confirm(yellow('\nSetup htpasswd for project?')):
