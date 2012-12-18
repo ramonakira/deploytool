@@ -9,7 +9,7 @@ from fabric.operations import require
 from fabric.tasks import Task
 
 import deploytool
-from deploytool.db.mysql import DatabaseOperations
+from deploytool.db import get_database_operations
 
 
 class ProvisioningTask(Task):
@@ -178,12 +178,18 @@ class Setup(ProvisioningTask):
                 use_sudo=True
             )
 
+        database_operations = get_database_operations(env.database_engine)
+
         # ask user input for template based file creation
         # TODO: security issue for password prompt
         print(yellow('\nProvide info for file creation:'))
         database_name = prompt('Database name: ', default=project_user)
         database_user = prompt('Database username (max 16 characters for MySQL): ', default=project_user)
-        database_pass = prompt('Database password: ', validate=self._validate_password)
+
+        if database_operations.needs_password:
+            database_pass = prompt('Database password: ', validate=self._validate_password)
+        else:
+            database_pass = ''
 
         files_to_create = [
             {'template': 'settings_py.txt', 'file': 'settings.py', },
@@ -217,8 +223,6 @@ class Setup(ProvisioningTask):
             database_name,
             project_user
         )))
-
-        database_operations = DatabaseOperations()
 
         if database_operations.database_exists(database_name):
             if not confirm(yellow('Database `%s` already exists. Continue anyway?' % database_name)):
