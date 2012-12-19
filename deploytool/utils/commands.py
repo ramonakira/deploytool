@@ -61,7 +61,10 @@ def tail_file(file_path, lines=5):
 def read_link(path):
     """ Returns real path for symbolic link """
 
-    return run('readlink -f %s' % path).strip()
+    if exists(path):
+        return run('readlink -f %s' % path).strip()
+    else:
+        return ''
 
 
 def create_folder(path):
