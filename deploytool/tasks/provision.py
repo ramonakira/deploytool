@@ -168,16 +168,6 @@ class Setup(ProvisioningTask):
             sudo('mkdir %s' % folder)
 
         # [3] copy files
-        print(green('\nCopying script files'))
-        files_to_copy = os.listdir(local_scripts_path)
-
-        for file_name in files_to_copy:
-            put(
-                local_path=os.path.join(local_scripts_path, file_name),
-                remote_path=os.path.join(env.scripts_path, file_name),
-                use_sudo=True
-            )
-
         database_operations = get_database_operations(env.database_engine)
 
         # ask user input for template based file creation
