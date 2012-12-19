@@ -27,7 +27,6 @@ def get_obsolete_instances(vhost_path):
 
 def backup_database(file_path):
     database_operations = get_database_operations(env.database_engine)
-
     credentials = get_database_credentials()
 
     database_operations.backup_database(
@@ -41,9 +40,15 @@ def backup_database(file_path):
 def restore_database(virtualenv_path, scripts_path, file_path):
     """ Drop, create, restore """
 
-    commands.python_run(env.virtualenv_path, '%s/db_drop.py' % env.scripts_path)
-    commands.python_run(env.virtualenv_path, '%s/db_create.py' % env.scripts_path)
-    commands.sql_execute_file(env.virtualenv_path, env.scripts_path, file_path)
+    database_operations = get_database_operations(env.database_engine)
+    credentials = get_database_credentials()
+
+    database_operations.restore_database(
+        credentials['database'],
+        credentials['username'],
+        credentials['password'],
+        file_path
+    )
 
 
 def create_virtualenv(virtualenv_path):
@@ -96,7 +101,7 @@ def get_database_credentials():
     credentials_filename = 'credentials.json'
 
     get(
-        os.path.join(env.scripts_path, credentials_filename),
+        os.path.join(env.vhost_path, credentials_filename),
         credentials_filename
     )
 
