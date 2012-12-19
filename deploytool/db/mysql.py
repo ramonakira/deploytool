@@ -1,5 +1,5 @@
 from fabric.colors import yellow
-from fabric.operations import prompt, sudo
+from fabric.operations import prompt, sudo, run
 
 
 class DatabaseOperations(object):
@@ -24,6 +24,16 @@ class DatabaseOperations(object):
             )
         )
         self.root_execute('FLUSH PRIVILEGES')
+
+    def backup_database(self, database_name, username, password, file_path):
+        command = 'mysqldump --user=\'%s\' --password=\'%s\' \'%s\' > %s' % (
+            username,
+            password.replace("'", "\\'"),
+            database_name,
+            file_path
+        )
+        run(command)
+
 
     def root_execute(self, sql, options=''):
         return sudo(

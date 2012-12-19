@@ -537,8 +537,6 @@ class Database(RemoteTask):
 
         print(green('\nCreating backup.'))
         utils.instance.backup_database(
-            env.virtualenv_path,
-            env.scripts_path,
             os.path.join(env.backup_path, file_name)
         )
 

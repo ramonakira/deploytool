@@ -1,7 +1,11 @@
-import datetime
+import os
+import json
+
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
+
+from deploytool.db import get_database_operations
 
 import commands
 
@@ -21,12 +25,18 @@ def get_obsolete_instances(vhost_path):
         return []
 
 
-def backup_database(virtualenv_path, scripts_path, file_path):
+def backup_database(file_path):
+    database_operations = get_database_operations(env.database_engine)
 
-    commands.python_run(
-        virtualenv_path,
-        '%s/db_backup.py "%s"' % (scripts_path, file_path)
+    credentials = get_database_credentials()
+
+    database_operations.backup_database(
+        credentials['database'],
+        credentials['username'],
+        credentials['password'],
+        file_path
     )
+
 
 def restore_database(virtualenv_path, scripts_path, file_path):
     """ Drop, create, restore """
@@ -80,3 +90,18 @@ def rollback(vhost_path):
         if exists('./previous_instance'):
             commands.delete('./current_instance')
             commands.rename('./previous_instance', './current_instance')
+
+
+def get_database_credentials():
+    credentials_filename = 'credentials.json'
+
+    get(
+        os.path.join(env.scripts_path, credentials_filename),
+        credentials_filename
+    )
+
+    with open(credentials_filename) as f:
+        credentials = json.load(f)
+
+    os.remove(credentials_filename)
+    return credentials
