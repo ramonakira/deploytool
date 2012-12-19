@@ -1,4 +1,4 @@
-from fabric.operations import sudo
+from fabric.operations import sudo, run
 
 
 class DatabaseOperations(object):
@@ -13,6 +13,16 @@ class DatabaseOperations(object):
         if not self.database_exists(database_name):
             self.sudo_postgres('createuser %s' % owner)
             self.sudo_postgres('createdb %s -O %s' % (database_name, owner))
+
+    def backup_database(self, database_name, username, password, file_path):
+        run(
+            'pg_dump %s > %s' % (database_name, file_path)
+        )
+
+    def restore_database(self, database_name, username, password, file_path):
+        run('dropdb %s' % database_name)
+        self.create_database(database_name, username, password)
+        run('psql -f %s' % file_path)
 
     def execute(self, sql):
         return sudo(

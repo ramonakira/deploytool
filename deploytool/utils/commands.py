@@ -1,7 +1,8 @@
+import os
+
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
-import os
 
 
 def get_folder_size(path):
@@ -112,18 +113,4 @@ def django_manage(virtualenv_path, project_path, command):
 
     python_path = os.path.join(project_path, 'manage.py')
     python_command = '%s %s' % (python_path, command)
-    python_run(virtualenv_path, python_command)
-
-
-def sql_execute_query(virtualenv_path, scripts_path, query):
-    """ Execute mysql command for supplied query """
-
-    python_command = '%s/sql_query.py "%s"' % (scripts_path, query)
-    python_run(virtualenv_path, python_command)
-
-
-def sql_execute_file(virtualenv_path, scripts_path, filename):
-    """ Execute mysql file """
-
-    python_command = '%s/sql_file.py "%s"' % (scripts_path, filename)
     python_run(virtualenv_path, python_command)

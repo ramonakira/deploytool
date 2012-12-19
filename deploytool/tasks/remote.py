@@ -316,8 +316,6 @@ class Deployment(RemoteTask):
         try:
             print(green('\nBacking up database at start.'))
             utils.instance.backup_database(
-                env.virtualenv_path,
-                env.scripts_path,
                 os.path.join(env.backup_path, 'db_backup_start.sql')
             )
 
@@ -351,19 +349,20 @@ class Deployment(RemoteTask):
 
             print(green('\nBacking up database at end.'))
             utils.instance.backup_database(
-                env.virtualenv_path,
-                env.scripts_path,
                 os.path.join(env.backup_path, 'db_backup_end.sql')
             )
         except:
             self.log(success=False)
 
-            print(yellow('\nRestoring database.'))
-            utils.instance.restore_database(
-                env.virtualenv_path,
-                env.scripts_path,
-                os.path.join(env.backup_path, 'db_backup_start.sql')
-            )
+            backup_file = os.path.join(env.backup_path, 'db_backup_start.sql')
+
+            if exists(backup_file):
+                print(yellow('\nRestoring database.'))
+                utils.instance.restore_database(
+                    env.virtualenv_path,
+                    env.scripts_path,
+                    backup_file
+                )
 
             print(green('\nRemoving this instance from filesystem.'))
             utils.commands.delete(env.instance_path)

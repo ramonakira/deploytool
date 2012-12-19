@@ -193,9 +193,8 @@ class Setup(ProvisioningTask):
 
         files_to_create = [
             {'template': 'settings_py.txt', 'file': 'settings.py', },
-            {'template': 'credentials_py.txt', 'file': 'scripts/credentials.py', },
             {'template': 'django_wsgi.txt', 'file': 'django.wsgi', },
-            {'template': 'credentials_json.txt', 'file': 'scripts/credentials.json', },
+            {'template': 'credentials_json.txt', 'file': 'credentials.json', },
         ]
 
         context = {
