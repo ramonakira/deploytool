@@ -171,3 +171,18 @@ Deployed Folder structure
                         urls.py
                         wsgi.py (changed)
                     /media -> /var/www/vhosts/s-myproject/media       is symlinked to media_path on every deploy
+
+Database command
+================
+
+The database command will generate sql dump of the database. 
+
+::
+
+    fab staging database
+
+You can also specify the output file:
+
+::
+
+    fab staging database:db.sql

@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import uuid
 
 from fabric.api import *
 from fabric.colors import *
@@ -542,25 +543,26 @@ class Database(RemoteTask):
 
     name = 'database'
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, output_filename=None):
+        def generate_output_file():
+            timestamp = datetime.today().strftime('%y%m%d%H%M')
+            return '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
 
-        timestamp = datetime.today().strftime('%y%m%d%H%M')
-        file_name = '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
+        if not output_filename:
+            output_filename = generate_output_file()
+
+        remote_filename = os.path.join(env.backup_path, str(uuid.uuid4()))
+
         cwd = os.getcwd()
 
         print(green('\nCreating backup.'))
-        utils.instance.backup_database(
-            os.path.join(env.backup_path, file_name)
-        )
+        utils.instance.backup_database(remote_filename)
 
         print(green('\nDownloading and removing remote backup.'))
-        utils.commands.download_file(
-            remote_path=os.path.join(env.backup_path, file_name),
-            local_path=os.path.join(os.getcwd(), file_name)
-        )
+        utils.commands.download_file(remote_filename, output_filename)
 
         print(green('\nSaved backup to:'))
-        print(os.path.join(cwd, file_name))
+        print(os.path.join(cwd, output_filename))
 
 
 class Test(RemoteTask):
