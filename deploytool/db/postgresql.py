@@ -16,13 +16,13 @@ class DatabaseOperations(object):
 
     def backup_database(self, database_name, username, password, file_path):
         run(
-            'pg_dump %s > %s' % (database_name, file_path)
+            'pg_dump --no-owner %s > %s' % (database_name, file_path)
         )
 
     def restore_database(self, database_name, username, password, file_path):
         run('dropdb %s' % database_name)
         self.create_database(database_name, username, password)
-        run('psql -f %s' % file_path)
+        run('psql -d %s -f %s' % (database_name, file_path))
 
     def execute(self, sql):
         return sudo(
