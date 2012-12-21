@@ -369,7 +369,7 @@ class Deployment(RemoteTask):
         utils.instance.set_current_instance(env.vhost_path, env.instance_path)
 
         print(green('\nRestarting website.'))
-        utils.commands.touch_wsgi(env.vhost_path)
+        sudo('supervisorctl restart %s%s' % (env.project_name_prefix, env.project_name))
 
         # after_restart pause
         if ('after_restart' in pause_at):

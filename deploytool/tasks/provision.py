@@ -100,7 +100,6 @@ class Setup(ProvisioningTask):
         project_user = '%s%s' % (env.project_name_prefix, env.project_name)
 
         # locations of local folders (based on running fabfile.py) needed for remote file transfers
-        local_scripts_path = os.path.join(os.path.dirname(deploytool.__file__), 'scripts')
         local_templates_path = os.path.join(os.path.dirname(deploytool.__file__), 'templates')
 
         # locations of remote paths - TODO: make these configable
@@ -109,8 +108,7 @@ class Setup(ProvisioningTask):
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
         htpasswd_path = os.path.join(env.vhost_path, 'htpasswd')
         nginx_conf_path = os.path.join('/', 'etc', 'nginx', 'conf.d')
-        apache_conf_path = self.get_apache_conf_path()
-        apache_daemon = self.get_apache_daemon()
+        haproxy_conf_path = '/etc/haproxy/haproxy.cfg'
         python_version = self.get_python_version()
 
         # check if vhosts path exists
@@ -183,12 +181,12 @@ class Setup(ProvisioningTask):
 
         files_to_create = [
             {'template': 'settings_py.txt', 'file': 'settings.py', },
-            {'template': 'django_wsgi.txt', 'file': 'django.wsgi', },
             {'template': 'credentials_json.txt', 'file': 'credentials.json', },
         ]
 
         context = {
             'project_name': env.project_name,
+            'project_user': project_user,
             'current_instance_path': env.current_instance_path,
             'cache_path': env.cache_path,
             'database_name': database_name,
@@ -234,17 +232,30 @@ class Setup(ProvisioningTask):
         # [7] create webserver conf files
         print(green('\nCreating vhost conf files'))
         try:
-            # grep vhosts => reverse list => awk top port #
-            output = run('%s | %s | %s' % (
-                'grep -hr "NameVirtualHost" %s' % apache_conf_path,
-                'sort -r',
-                'awk \'{if (NR==1) { print substr($2,3) }}\''
+            output = run('%s | %s | %s | %s' % (
+                'grep "server django 127.0.0.1:" %s' % haproxy_conf_path,
+                r"sed 's/.*server django 127\.0\.0\.1\:\([0-9]*\).*/\1/'",
+                'sort -nr',
+                'head -1'
             ))
-            new_port_nr = int(output) + 1
+            django_port_nr = int(output) + 1
         except:
-            new_port_nr = 8000
+            django_port_nr = 8000
 
-        print('Port %s will be used for this project' % magenta(new_port_nr))
+        print('Django port %s will be used for this project' % magenta(django_port_nr))
+
+        try:
+            output = run('%s | %s | %s | %s' % (
+                'grep "server static 127.0.0.1:" %s' % haproxy_conf_path,
+                r"sed 's/.*server static 127\.0\.0\.1\:\([0-9]*\).*/\1/'",
+                'sort -nr',
+                'head -1'
+            ))
+            nginx_port_nr = int(output) + 1
+        except:
+            nginx_port_nr = 9000
+
+        print('Nginx port %s will be used for this project' % magenta(nginx_port_nr))
 
         # check if htpasswd is used (some nginx vhost lines will be commented if it isn't)
         if not exists(htpasswd_path, use_sudo=True):
@@ -254,7 +265,8 @@ class Setup(ProvisioningTask):
 
         # assemble context for apache and nginx vhost conf files
         context = {
-            'port_number': new_port_nr,
+            'django_port': django_port_nr,
+            'nginx_port': nginx_port_nr,
             'current_instance_path': env.current_instance_path,
             'website_name': env.website_name,
             'project_name': env.project_name,
@@ -268,14 +280,46 @@ class Setup(ProvisioningTask):
 
         # create the conf files from template and transfer them to remote server
         upload_template(
-            filename=os.path.join(local_templates_path, 'apache_vhost.txt'),
-            destination=os.path.join(apache_conf_path, 'vhosts-%s.conf' % project_user),
+            filename=os.path.join(local_templates_path, 'supervisor_conf.txt'),
+            destination=os.path.join('/etc/supervisor/conf.d', '%s.conf' % project_user),
             context=context,
             use_sudo=True
         )
         upload_template(
             filename=os.path.join(local_templates_path, 'nginx_vhost.txt'),
             destination=os.path.join(nginx_conf_path, 'vhosts-%s.conf' % project_user),
+            context=context,
+            use_sudo=True
+        )
+
+        haproxy_backend_path = '/etc/haproxy/backends'
+        haproxy_backend_django_path = os.path.join(haproxy_backend_path, '%s_django' % project_user)
+        sudo('mkdir -p %s' % haproxy_backend_django_path)
+
+        upload_template(
+            filename=os.path.join(local_templates_path, 'haproxy_backend_django.txt'),
+            destination=os.path.join(haproxy_backend_django_path, 'default'),
+            context=context,
+            use_sudo=True
+        )
+
+        haproxy_backend_static_path = os.path.join(haproxy_backend_path, '%s_static' % project_user)
+        sudo('mkdir -p %s' % haproxy_backend_static_path)
+
+        upload_template(
+            filename=os.path.join(local_templates_path, 'haproxy_backend_static.txt'),
+            destination=os.path.join(haproxy_backend_static_path, 'default'),
+            context=context,
+            use_sudo=True
+        )
+
+        haproxy_frontend_path = '/etc/haproxy/frontends/all'
+        haproxy_frontend_file_path = os.path.join(haproxy_frontend_path, project_user)
+        sudo('mkdir -p %s' % haproxy_frontend_path)
+
+        upload_template(
+            filename=os.path.join(local_templates_path, 'haproxy_frontend.txt'),
+            destination=haproxy_frontend_file_path,
             context=context,
             use_sudo=True
         )
@@ -287,17 +331,19 @@ class Setup(ProvisioningTask):
         # [8] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
-            self.run_apache_configtest()
             sudo('/etc/init.d/nginx configtest')
             print('')
 
         if confirm(yellow('\nOK to restart webserver?')):
             with settings(show('stdout')):
-                sudo('%s restart' % apache_daemon)
+                sudo('/etc/init.d/haproxy restart')
                 sudo('/etc/init.d/nginx restart')
                 print('')
         else:
             print(magenta('Website will be available when webservers are restarted.'))
+
+        # update supervisor
+        sudo('supervisorctl update')
 
     def _validate_password(self, password):
         """ Validator for input prompt when asking for password """
@@ -309,50 +355,6 @@ class Setup(ProvisioningTask):
 
         return password.strip()
 
-    def get_apache_conf_path(self):
-        """
-        Get the apache conf path.
-        The path is /etc/httpd/conf.d on Centos and /etc/apache2/conf.f on Ubuntu
-
-        If no path is found, then abort.
-        """
-        apache_conf_path = self.find_first_existing_path(
-            os.path.join('/', 'etc', 'httpd', 'conf.d'),
-            os.path.join('/', 'etc', 'apache2', 'conf.d')
-        )
-
-        if apache_conf_path:
-            return apache_conf_path
-        else:
-            abort(red('apache conf path not found'))
-
-    def get_apache_daemon(self):
-        """
-        Get apache daemon.
-        The daemon is /etc/init.d/httpd on Centos and /etc/init.d/apache2 on Ubuntu
-
-        If no path is found, then abort.
-        """
-        apache_daemon = self.find_first_existing_path(
-            os.path.join('/', 'etc', 'init.d', 'httpd'),
-            os.path.join('/', 'etc', 'init.d', 'apache2')
-        )
-
-        if apache_daemon:
-            return apache_daemon
-        else:
-            abort(red('apache daemon not found'))
-
-    def find_first_existing_path(self, *paths):
-        """
-        Find the first path that exists. If no path is found, return None.
-        """
-        for path in paths:
-            if exists(path):
-                return path
-
-        return None
-
     def get_python_version(self):
         """
         Return python version as <major>.<minor> string.
@@ -361,15 +363,6 @@ class Setup(ProvisioningTask):
         command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
 
         return run(command)
-
-    def run_apache_configtest(self):
-        """
-        Return apache configtest using apachectl or apache daemon.
-        """
-        if run('which apachectl', quiet=True):
-            sudo('apachectl configtest')
-        else:
-            sudo('%s configtest' % self.get_apache_daemon())
 
 
 class Keys(ProvisioningTask):

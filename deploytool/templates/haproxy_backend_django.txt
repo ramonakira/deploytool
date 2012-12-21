@@ -1,0 +1,1 @@
+server django 127.0.0.1:%(django_port)s check
