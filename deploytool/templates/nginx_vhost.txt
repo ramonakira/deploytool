@@ -1,5 +1,5 @@
 server {
-    listen %(nginx_port)s;
+    listen 127.0.0.1:%(nginx_port)s;
 
     client_max_body_size 5M;
 
