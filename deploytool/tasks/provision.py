@@ -56,9 +56,8 @@ class Setup(ProvisioningTask):
         [3] copy files
         [4] create files
         [5] create database + user
-        [6] .htpasswd (optional)
-        [7] setup vhosts
-        [8] restart webservers (optional)
+        [6] setup vhosts
+        [7] restart webservers (optional)
 
         Note that this task is intentionally not reversible.
         Any conflicts need to be fixed manually. Some tips:
@@ -106,7 +105,6 @@ class Setup(ProvisioningTask):
         user_home_path = os.path.join('/', 'home', project_user)
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
-        htpasswd_path = os.path.join(env.vhost_path, 'htpasswd')
         nginx_conf_path = os.path.join('/', 'etc', 'nginx', 'conf.d')
         haproxy_conf_path = '/etc/haproxy/haproxy.cfg'
         python_version = self.get_python_version()
@@ -220,16 +218,7 @@ class Setup(ProvisioningTask):
         # all is well, and user is ok should database already exist
         database_operations.create_database(database_name, database_user, database_pass)
 
-        # [6] ask for optional setup of .htpasswd (used for staging environment)
-        if confirm(yellow('\nSetup htpasswd for project?')):
-            htusername = env.project_name
-            htpasswd = '%s%s' % (env.project_name, datetime.now().year)
-            sudo('mkdir %s' % htpasswd_path)
-
-            with cd(htpasswd_path):
-                sudo('htpasswd -bc .htpasswd %s %s' % (htusername, htpasswd))
-
-        # [7] create webserver conf files
+        # [6] create webserver conf files
         print(green('\nCreating vhost conf files'))
         try:
             output = run('%s | %s | %s | %s' % (
@@ -257,12 +246,6 @@ class Setup(ProvisioningTask):
 
         print('Nginx port %s will be used for this project' % magenta(nginx_port_nr))
 
-        # check if htpasswd is used (some nginx vhost lines will be commented if it isn't)
-        if not exists(htpasswd_path, use_sudo=True):
-            use_htpasswd = '#'
-        else:
-            use_htpasswd = ''
-
         # assemble context for apache and nginx vhost conf files
         context = {
             'django_port': django_port_nr,
@@ -275,7 +258,6 @@ class Setup(ProvisioningTask):
             'log_path': env.log_path,
             'admin_email': env.admin_email,
             'project_user': project_user,
-            'use_htpasswd': use_htpasswd,
         }
 
         # create the conf files from template and transfer them to remote server
@@ -328,7 +310,7 @@ class Setup(ProvisioningTask):
         print(green('\nChanging ownership of %s to `%s`' % (env.vhost_path, project_user)))
         sudo('chown -R %s:%s %s' % (project_user, project_user, env.vhost_path))
 
-        # [8] prompt for webserver restart
+        # [7] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
             sudo('/etc/init.d/nginx configtest')
