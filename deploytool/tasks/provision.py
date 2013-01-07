@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 from fabric.api import *
 from fabric.colors import *

@@ -1,8 +1,5 @@
 from fabric.api import *
 from fabric.colors import *
-from fabric.contrib.files import *
-from fabric.contrib.console import confirm
-from fabric.operations import require
 from fabric.tasks import Task
 
 

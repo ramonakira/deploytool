@@ -1,7 +1,4 @@
 from fabric.api import *
-from fabric.colors import *
-from fabric.contrib.files import *
-import os
 
 
 def transfer_source(upload_path, tree):
