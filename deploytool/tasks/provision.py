@@ -67,7 +67,6 @@ class Setup(ProvisioningTask):
 
             # remove all remote project files
             $ rm -rf /var/www/vhosts/the_project_full_name
-            $ rm /etc/httpd/conf.d/vhosts-the_projects_full_name.conf
             $ rm /etc/nginx/conf.d/vhosts-the_projects_full_name.conf
 
             Use a DBMS (i.e. Sequel Pro) for managing databases and its users.
