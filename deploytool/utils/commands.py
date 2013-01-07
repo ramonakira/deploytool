@@ -114,3 +114,37 @@ def django_manage(virtualenv_path, project_path, command):
     python_path = os.path.join(project_path, 'manage.py')
     python_command = '%s %s' % (python_path, command)
     python_run(virtualenv_path, python_command)
+
+
+def upload_jinja_template(filenames, destination, context, template_paths):
+    """
+    Upload a template. Generate the file using a jinja2 template.
+    This function does almost the same as the upload_template function in fabric.
+
+    Differences:
+    - accepts multiple template paths
+    - accepts multiple filenames
+    - assumes some defaults (sudo, backup=True)
+    """
+    # Process template
+    from jinja2 import Environment, FileSystemLoader
+
+    text = ''
+    try:
+        jenv = Environment(loader=FileSystemLoader(template_paths))
+        text = jenv.select_template(filenames).render(**context or {})
+    except ImportError:
+        import traceback
+        tb = traceback.format_exc()
+        abort(tb + "\nUnable to import Jinja2 -- see above.")
+
+    # Back up original file
+    if exists(destination):
+        sudo("cp %s{,.bak}" % destination)
+
+    # Upload the file.
+    return put(
+        local_path=StringIO(text),
+        remote_path=destination,
+        use_sudo=True
+    )

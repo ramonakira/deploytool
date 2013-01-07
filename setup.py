@@ -18,6 +18,7 @@ setup(
 
     install_requires=[
         'fabric>=1.2.2',
+        'Jinja2==2.6',
     ],
 
     description='Deploytool - a Django Fabric deploytool',

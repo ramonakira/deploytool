@@ -1,4 +1,6 @@
-[program:%(project_name_prefix)s%(project_name)s]
-command=%(current_instance_path)s/env/bin/python manage.py run_gunicorn --access-logfile=%(log_path)s/gunicorn_access.log --error-logfile=%(log_path)s/gunicorn_error.log -b 127.0.0.1:%(django_port)s
-directory=%(current_instance_path)s/%(project_name)s
-user=%(project_user)s
+{% block body %}
+[program:{{ project_name_prefix }}{{ project_name }}]
+command={{ current_instance_path }}/env/bin/python manage.py run_gunicorn --access-logfile={{ log_path }}/gunicorn_access.log --error-logfile={{ log_path }}/gunicorn_error.log -b 127.0.0.1:{{ django_port }}
+directory={{ current_instance_path }}/{{ project_name }}
+user={{ project_user }}
+{% endblock %}

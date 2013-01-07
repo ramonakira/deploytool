@@ -9,6 +9,7 @@ from fabric.tasks import Task
 
 import deploytool
 from deploytool.db import get_database_operations
+from deploytool.utils.commands import upload_jinja_template
 
 
 class ProvisioningTask(Task):
@@ -98,7 +99,7 @@ class Setup(ProvisioningTask):
         project_user = '%s%s' % (env.project_name_prefix, env.project_name)
 
         # locations of local folders (based on running fabfile.py) needed for remote file transfers
-        local_templates_path = os.path.join(os.path.dirname(deploytool.__file__), 'templates')
+        local_templates_path = self.get_local_templates_path()
 
         # locations of remote paths - TODO: make these configable
         user_home_path = os.path.join('/', 'home', project_user)
@@ -245,7 +246,7 @@ class Setup(ProvisioningTask):
 
         print('Nginx port %s will be used for this project' % magenta(nginx_port_nr))
 
-        # assemble context for apache and nginx vhost conf files
+        # assemble context for conf files
         context = {
             'django_port': django_port_nr,
             'nginx_port': nginx_port_nr,
@@ -260,11 +261,11 @@ class Setup(ProvisioningTask):
         }
 
         # create the conf files from template and transfer them to remote server
-        upload_template(
-            filename=os.path.join(local_templates_path, 'supervisor_conf.txt'),
+        upload_jinja_template(
+            filenames=['override_supervisor_conf.txt', 'supervisor_conf.txt'],
             destination=os.path.join('/etc/supervisor/conf.d', '%s.conf' % project_user),
             context=context,
-            use_sudo=True
+            template_paths=self.get_template_paths()
         )
         upload_template(
             filename=os.path.join(local_templates_path, 'nginx_vhost.txt'),
@@ -344,6 +345,19 @@ class Setup(ProvisioningTask):
         command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
 
         return run(command)
+
+    def get_local_templates_path(self):
+        return os.path.join(os.path.dirname(deploytool.__file__), 'templates')
+
+    def get_template_paths(self):
+        paths = []
+
+        if 'templates_path' in env:
+            paths.append(env.templates_path)
+
+        paths.append(self.get_local_templates_path())
+
+        return paths
 
 
 class Keys(ProvisioningTask):
