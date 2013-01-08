@@ -4,6 +4,8 @@ from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
 
+import deploytool
+
 
 def get_folder_size(path):
     """ Returns human-readable string with total recursive size of path """
@@ -148,3 +150,18 @@ def upload_jinja_template(filenames, destination, context, template_paths):
         remote_path=destination,
         use_sudo=True
     )
+
+
+def get_local_templates_path():
+    return os.path.join(os.path.dirname(deploytool.__file__), 'templates')
+
+
+def get_template_paths():
+    paths = []
+
+    if 'templates_path' in env:
+        paths.append(env.templates_path)
+
+    paths.append(get_local_templates_path())
+
+    return paths

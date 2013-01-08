@@ -1,18 +1,18 @@
 server {
-    listen 127.0.0.1:%(nginx_port)s;
+    listen 127.0.0.1:{{ nginx_port }};
 
     client_max_body_size 5M;
 
-    access_log %(log_path)s/nginx_access.log;
-    error_log %(log_path)s/nginx_error.log;
+    access_log {{ log_path }}/nginx_access.log;
+    error_log {{ log_path }}/nginx_error.log;
 
     location /media/ {
-        root %(current_instance_path)s/%(project_name)s;
+        root {{ current_instance_path }}/{{ project_name }};
         expires max;
     }
 
     location /static/ {
-        root %(current_instance_path)s/%(project_name)s;
+        root {{ current_instance_path }}/{{ project_name }};
         expires max;
     }
 }

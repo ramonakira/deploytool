@@ -7,9 +7,8 @@ from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.tasks import Task
 
-import deploytool
 from deploytool.db import get_database_operations
-from deploytool.utils.commands import upload_jinja_template
+from deploytool.utils.commands import upload_jinja_template, get_local_templates_path, get_template_paths
 
 
 class ProvisioningTask(Task):
@@ -98,7 +97,7 @@ class Setup(ProvisioningTask):
         project_user = '%s%s' % (env.project_name_prefix, env.project_name)
 
         # locations of local folders (based on running fabfile.py) needed for remote file transfers
-        local_templates_path = self.get_local_templates_path()
+        local_templates_path = get_local_templates_path()
 
         # locations of remote paths - TODO: make these configable
         user_home_path = os.path.join('/', 'home', project_user)
@@ -197,11 +196,13 @@ class Setup(ProvisioningTask):
         # [4] create files from templates (using fabric env and user input)
         print(green('\nCreating project files'))
         for file_to_create in files_to_create:
-            upload_template(
-                filename=os.path.join(local_templates_path, file_to_create['template']),
+            template_filename = file_to_create['template']
+
+            upload_jinja_template(
+                filenames=['override_%s' % template_filename, template_filename],
                 destination=os.path.join(env.vhost_path, file_to_create['file']),
                 context=context,
-                use_sudo=True
+                template_paths=get_template_paths()
             )
 
         # [5] create new database + user with all schema privileges (uses database root user)
@@ -264,45 +265,45 @@ class Setup(ProvisioningTask):
             filenames=['override_supervisor_conf.txt', 'supervisor_conf.txt'],
             destination=os.path.join('/etc/supervisor/conf.d', '%s.conf' % project_user),
             context=context,
-            template_paths=self.get_template_paths()
+            template_paths=get_template_paths()
         )
-        upload_template(
-            filename=os.path.join(local_templates_path, 'nginx_vhost.txt'),
+        upload_jinja_template(
+            filenames=['override_nginx_vhost.txt', 'nginx_vhost.txt'],
             destination=os.path.join(nginx_conf_path, 'vhosts-%s.conf' % project_user),
             context=context,
-            use_sudo=True
+            template_paths=get_template_paths()
         )
 
         haproxy_backend_path = '/etc/haproxy/backends'
         haproxy_backend_django_path = os.path.join(haproxy_backend_path, '%s_django' % project_user)
         sudo('mkdir -p %s' % haproxy_backend_django_path)
 
-        upload_template(
-            filename=os.path.join(local_templates_path, 'haproxy_backend_django.txt'),
+        upload_jinja_template(
+            filenames=['override_haproxy_backend_django.txt', 'haproxy_backend_django.txt'],
             destination=os.path.join(haproxy_backend_django_path, 'default'),
             context=context,
-            use_sudo=True
+            template_paths=get_template_paths()
         )
 
         haproxy_backend_static_path = os.path.join(haproxy_backend_path, '%s_static' % project_user)
         sudo('mkdir -p %s' % haproxy_backend_static_path)
 
-        upload_template(
-            filename=os.path.join(local_templates_path, 'haproxy_backend_static.txt'),
+        upload_jinja_template(
+            filenames=['override_haproxy_backend_static', 'haproxy_backend_static.txt'],
             destination=os.path.join(haproxy_backend_static_path, 'default'),
             context=context,
-            use_sudo=True
+            template_paths=get_template_paths()
         )
 
         haproxy_frontend_path = '/etc/haproxy/frontends/all'
         haproxy_frontend_file_path = os.path.join(haproxy_frontend_path, project_user)
         sudo('mkdir -p %s' % haproxy_frontend_path)
 
-        upload_template(
-            filename=os.path.join(local_templates_path, 'haproxy_frontend.txt'),
+        upload_jinja_template(
+            filenames=['override_haproxy_frontend.txt', 'haproxy_frontend.txt'],
             destination=haproxy_frontend_file_path,
             context=context,
-            use_sudo=True
+            template_paths=get_template_paths()
         )
 
         # chown project for project user
@@ -344,19 +345,6 @@ class Setup(ProvisioningTask):
         command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
 
         return run(command)
-
-    def get_local_templates_path(self):
-        return os.path.join(os.path.dirname(deploytool.__file__), 'templates')
-
-    def get_template_paths(self):
-        paths = []
-
-        if 'templates_path' in env:
-            paths.append(env.templates_path)
-
-        paths.append(self.get_local_templates_path())
-
-        return paths
 
 
 class Keys(ProvisioningTask):

@@ -5,10 +5,10 @@ TEMPLATE_DEBUG = DEBUG
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.%(engine)s',
-        'NAME': '%(database_name)s',
-        'USER': '%(username)s',
-        'PASSWORD': '%(password)s',
+        'ENGINE': 'django.db.backends.{{ engine }}',
+        'NAME': '{{ database_name }}',
+        'USER': '{{ username }}',
+        'PASSWORD': '{{ password }}',
         'HOST': '',
         'PORT': '',
     }

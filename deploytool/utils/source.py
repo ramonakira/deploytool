@@ -7,7 +7,6 @@ def transfer_source(upload_path, tree):
         upload_path =>  target location to extract on remote
         tree        =>  git ID for branch, commit or tag
     """
-
     tar_file = 'source.tar'
     local('git archive --format=tar --output=%s %s' % (tar_file, tree))
     uploaded_files = put(tar_file, upload_path)
@@ -20,13 +19,11 @@ def transfer_source(upload_path, tree):
 
 
 def create_tag(tag):
-
     local('git tag %s' % tag)
     local('git push --tags')
 
 
 def delete_tag(tag):
-
     local('git tag -d %s' % tag)
     local('git push origin :refs/tags/%s' % tag)
 
@@ -36,7 +33,6 @@ def list_tags():
     Uses subprocess to pipe the output of `git tag` to a variable.
     The tags are split to a list, converted to integers and reversed.
     """
-
     output = local('git tag', capture=True)
     tags = [int(t) for t in output.split('\n') if t != '']
     tags.reverse()
@@ -46,20 +42,17 @@ def list_tags():
 
 def list_commits(amount=10, branch='master'):
     """ Pipe git commit log to list """
-
     output = local('git log %s -n %d --pretty=format:%%H' % (branch, amount), capture=True)
     return [c.strip() for c in output.split('\n') if c != '']
 
 
 def get_branch_name():
-
     return local('git rev-parse --abbrev-ref HEAD', capture=True).strip()
 
 
 def get_commit_id(tree):
-
     return local('git rev-parse %s' % tree, capture=True).strip()
 
-def get_head():
 
+def get_head():
     return get_commit_id('HEAD')
