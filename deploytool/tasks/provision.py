@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 
 from fabric.api import *
@@ -55,8 +56,9 @@ class Setup(ProvisioningTask):
         [3] copy files
         [4] create files
         [5] create database + user
-        [6] setup vhosts
-        [7] restart webservers (optional)
+        [6] basic auth (optional)
+        [7] setup vhosts
+        [8] restart webservers (optional)
 
         Note that this task is intentionally not reversible.
         Any conflicts need to be fixed manually. Some tips:
@@ -218,7 +220,15 @@ class Setup(ProvisioningTask):
         # all is well, and user is ok should database already exist
         database_operations.create_database(database_name, database_user, database_pass)
 
-        # [6] create webserver conf files
+        # [6] basic auth (optional)
+        if confirm(yellow('\nSetup htpasswd for project?')):
+            htusername = env.project_name
+            htpasswd = '%s%s' % (env.project_name, datetime.now().year)
+        else:
+            htusername = ''
+            htpasswd = ''
+
+        # [7] create webserver conf files
         print(green('\nCreating vhost conf files'))
         try:
             output = run('%s | %s | %s | %s' % (
@@ -258,6 +268,8 @@ class Setup(ProvisioningTask):
             'log_path': env.log_path,
             'admin_email': env.admin_email,
             'project_user': project_user,
+            'htusername': htusername,
+            'htpasswd': htpasswd,
         }
 
         # create the conf files from template and transfer them to remote server
@@ -306,11 +318,19 @@ class Setup(ProvisioningTask):
             template_paths=get_template_paths()
         )
 
+        if htusername:
+            upload_jinja_template(
+                filenames=['override_haproxy_userlist.txt', 'haproxy_userlist.txt'],
+                destination=os.path.join('/etc/haproxy/', 'all', '%s%s' % (env.project_name_prefix, env.project_name)),
+                context=context,
+                template_paths=get_template_paths()
+            )
+
         # chown project for project user
         print(green('\nChanging ownership of %s to `%s`' % (env.vhost_path, project_user)))
         sudo('chown -R %s:%s %s' % (project_user, project_user, env.vhost_path))
 
-        # [7] prompt for webserver restart
+        # [8] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
             sudo('/etc/init.d/nginx configtest')

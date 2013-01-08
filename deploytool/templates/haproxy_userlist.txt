@@ -1,0 +1,2 @@
+userlist {{ project_name_prefix }}{{ project_name }}_userlist
+	user {{ htusername }} insecure-password {{ htpasswd }}
