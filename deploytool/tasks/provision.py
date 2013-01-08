@@ -12,6 +12,16 @@ from deploytool.db import get_database_operations
 from deploytool.utils.commands import upload_jinja_template, get_local_templates_path, get_template_paths
 
 
+HAPROXY_CONF_DIR = '/etc/haproxy/'
+HAPROXY_CONF_FILE = os.path.join(HAPROXY_CONF_DIR, 'haproxy.cfg')
+NGINX_CONFD_PATH = '/etc/nginx/conf.d'
+PASSWD_FILE = '/etc/passwd'
+SUPERVISOR_CONFD_PATH = '/etc/supervisor/conf.d'
+NGINX_CONFIGTEST = '/etc/init.d/nginx configtest'
+HAPROXY_INITD = '/etc/init.d/haproxy'
+NGINX_INITD = '/etc/init.d/nginx'
+
+
 class ProvisioningTask(Task):
     """
     Base class for provisioning tasks
@@ -98,15 +108,12 @@ class Setup(ProvisioningTask):
         # project user (e.g. `s-myproject`)
         project_user = '%s%s' % (env.project_name_prefix, env.project_name)
 
-        # locations of local folders (based on running fabfile.py) needed for remote file transfers
-        local_templates_path = get_local_templates_path()
-
         # locations of remote paths - TODO: make these configable
         user_home_path = os.path.join('/', 'home', project_user)
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
-        nginx_conf_path = os.path.join('/', 'etc', 'nginx', 'conf.d')
-        haproxy_conf_path = '/etc/haproxy/haproxy.cfg'
+        nginx_conf_path = NGINX_CONFD_PATH
+        haproxy_conf_path = HAPROXY_CONF_FILE
         python_version = self.get_python_version()
 
         # check if vhosts path exists
@@ -124,7 +131,7 @@ class Setup(ProvisioningTask):
 
         # [1] create new project_user
         print(green('\nCreating project user `%s`' % project_user))
-        user_exists = bool(run('cat /etc/passwd').find(project_user + ':') > 0)
+        user_exists = bool(run('cat %s' % PASSWD_FILE).find(project_user + ':') > 0)
 
         if user_exists:
             # user already exists, ask if this user is available for reuse
@@ -275,7 +282,7 @@ class Setup(ProvisioningTask):
         # create the conf files from template and transfer them to remote server
         upload_jinja_template(
             filenames=['override_supervisor_conf.txt', 'supervisor_conf.txt'],
-            destination=os.path.join('/etc/supervisor/conf.d', '%s.conf' % project_user),
+            destination=os.path.join(SUPERVISOR_CONFD_PATH, '%s.conf' % project_user),
             context=context,
             template_paths=get_template_paths()
         )
@@ -286,7 +293,7 @@ class Setup(ProvisioningTask):
             template_paths=get_template_paths()
         )
 
-        haproxy_backend_path = '/etc/haproxy/backends'
+        haproxy_backend_path = os.path.join(HAPROXY_CONF_DIR, 'backends')
         haproxy_backend_django_path = os.path.join(haproxy_backend_path, '%s_django' % project_user)
         sudo('mkdir -p %s' % haproxy_backend_django_path)
 
@@ -307,7 +314,7 @@ class Setup(ProvisioningTask):
             template_paths=get_template_paths()
         )
 
-        haproxy_frontend_path = '/etc/haproxy/frontends/all'
+        haproxy_frontend_path = os.path.join(HAPROXY_CONF_DIR, 'frontends', 'all')
         haproxy_frontend_file_path = os.path.join(haproxy_frontend_path, project_user)
         sudo('mkdir -p %s' % haproxy_frontend_path)
 
@@ -321,7 +328,7 @@ class Setup(ProvisioningTask):
         if htusername:
             upload_jinja_template(
                 filenames=['override_haproxy_userlist.txt', 'haproxy_userlist.txt'],
-                destination=os.path.join('/etc/haproxy/', 'all', '%s%s' % (env.project_name_prefix, env.project_name)),
+                destination=os.path.join(HAPROXY_CONF_DIR, 'all', '%s%s' % (env.project_name_prefix, env.project_name)),
                 context=context,
                 template_paths=get_template_paths()
             )
@@ -333,13 +340,13 @@ class Setup(ProvisioningTask):
         # [8] prompt for webserver restart
         print(green('\nTesting webserver configuration'))
         with settings(show('stdout')):
-            sudo('/etc/init.d/nginx configtest')
+            sudo(NGINX_CONFIGTEST)
             print('')
 
         if confirm(yellow('\nOK to restart webserver?')):
             with settings(show('stdout')):
-                sudo('/etc/init.d/haproxy restart')
-                sudo('/etc/init.d/nginx restart')
+                sudo('%s restart' % HAPROXY_INITD)
+                sudo('%s restart' % NGINX_INITD)
                 print('')
         else:
             print(magenta('Website will be available when webservers are restarted.'))
