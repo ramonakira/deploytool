@@ -117,6 +117,12 @@ The available hooks are:
 * test
 
 
+Settings
+--------
+
+**database_engine**: 'mysql' (default) or 'postgresql'
+
+
 Examples
 ========
 
