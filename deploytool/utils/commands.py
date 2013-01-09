@@ -113,4 +113,15 @@ def django_manage(virtualenv_path, project_path, command):
 
     python_path = os.path.join(project_path, 'manage.py')
     python_command = '%s %s' % (python_path, command)
+
     python_run(virtualenv_path, python_command)
+
+
+def get_python_version():
+    """
+    Return python version as <major>.<minor> string.
+    E.g. '2.6'
+    """
+    command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
+
+    return run(command)
