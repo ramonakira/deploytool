@@ -142,8 +142,9 @@ class Setup(ProvisioningTask):
             # Option -m makes sure a homedirectory is created.
             sudo('useradd -m %s' % project_user)
 
-            # add user to sudoers file
+            # add user to groups 'sudo' and 'adm'
             sudo('usermod -a -G sudo %s' % project_user)
+            sudo('usermod -a -G adm %s' % project_user)
 
             with(show('stdout')):
                 sudo('passwd %s' % project_user)
