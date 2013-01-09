@@ -165,3 +165,13 @@ def get_template_paths():
     paths.append(get_local_templates_path())
 
     return paths
+
+
+def get_python_version():
+    """
+    Return python version as <major>.<minor> string.
+    E.g. '2.6'
+    """
+    command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
+
+    return run(command)

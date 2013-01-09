@@ -11,6 +11,7 @@ from fabric.operations import open_shell
 from fabric.tasks import Task
 
 import deploytool.utils as utils
+from deploytool.utils.commands import get_python_version
 
 
 class RemoteHost(Task):
@@ -252,7 +253,7 @@ class Deployment(RemoteTask):
                 print(green('\nCopying .pth files.'))
                 utils.commands.copy(
                     from_path=os.path.join(env.project_path, '*.pth'),
-                    to_path='%s/lib/python2.6/site-packages' % env.virtualenv_path
+                    to_path='%s/lib/python%s/site-packages' % (env.virtualenv_path, get_python_version())
                 )
 
             print(green('\nPip installing requirements.'))

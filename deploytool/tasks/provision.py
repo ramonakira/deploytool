@@ -9,7 +9,7 @@ from fabric.operations import require
 from fabric.tasks import Task
 
 from deploytool.db import get_database_operations
-from deploytool.utils.commands import upload_jinja_template, get_local_templates_path, get_template_paths
+from deploytool.utils.commands import upload_jinja_template, get_template_paths, get_python_version
 
 
 HAPROXY_CONF_DIR = '/etc/haproxy/'
@@ -114,7 +114,7 @@ class Setup(ProvisioningTask):
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
         nginx_conf_path = NGINX_CONFD_PATH
         haproxy_conf_path = HAPROXY_CONF_FILE
-        python_version = self.get_python_version()
+        python_version = get_python_version()
 
         # check if vhosts path exists
         if not exists(env.vhosts_path, use_sudo=True):
@@ -367,15 +367,6 @@ class Setup(ProvisioningTask):
             raise Exception(red('Please enter a valid password of at least %s characters' % min_length_required))
 
         return password.strip()
-
-    def get_python_version(self):
-        """
-        Return python version as <major>.<minor> string.
-        E.g. '2.6'
-        """
-        command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
-
-        return run(command)
 
 
 class Keys(ProvisioningTask):
