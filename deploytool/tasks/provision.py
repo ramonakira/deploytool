@@ -298,45 +298,12 @@ class Setup(ProvisioningTask):
             template_paths=get_template_paths()
         )
 
-        haproxy_backend_path = os.path.join(HAPROXY_CONF_DIR, 'backends')
-        haproxy_backend_django_path = os.path.join(haproxy_backend_path, '%s_django' % project_user)
-        sudo('mkdir -p %s' % haproxy_backend_django_path)
-
         upload_jinja_template(
-            filenames=['override_haproxy_backend_django.txt', 'haproxy_backend_django.txt'],
-            destination=os.path.join(haproxy_backend_django_path, 'default'),
+            filenames=['override_haproxy_json.txt', 'haproxy_json.txt'],
+            destination=os.path.join(HAPROXY_CONF_DIR, 'conf.d', '%s%s.json' % (env.project_name_prefix, env.project_name)),
             context=context,
             template_paths=get_template_paths()
         )
-
-        haproxy_backend_static_path = os.path.join(haproxy_backend_path, '%s_static' % project_user)
-        sudo('mkdir -p %s' % haproxy_backend_static_path)
-
-        upload_jinja_template(
-            filenames=['override_haproxy_backend_static', 'haproxy_backend_static.txt'],
-            destination=os.path.join(haproxy_backend_static_path, 'default'),
-            context=context,
-            template_paths=get_template_paths()
-        )
-
-        haproxy_frontend_path = os.path.join(HAPROXY_CONF_DIR, 'frontends', 'all')
-        haproxy_frontend_file_path = os.path.join(haproxy_frontend_path, project_user)
-        sudo('mkdir -p %s' % haproxy_frontend_path)
-
-        upload_jinja_template(
-            filenames=['override_haproxy_frontend.txt', 'haproxy_frontend.txt'],
-            destination=haproxy_frontend_file_path,
-            context=context,
-            template_paths=get_template_paths()
-        )
-
-        if htusername:
-            upload_jinja_template(
-                filenames=['override_haproxy_userlist.txt', 'haproxy_userlist.txt'],
-                destination=os.path.join(HAPROXY_CONF_DIR, 'all', '%s%s' % (env.project_name_prefix, env.project_name)),
-                context=context,
-                template_paths=get_template_paths()
-            )
 
         # chown project for project user
         print(green('\nChanging ownership of %s to `%s`' % (env.vhost_path, project_user)))

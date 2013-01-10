@@ -1,1 +1,0 @@
-server static 127.0.0.1:{{ nginx_port }} check

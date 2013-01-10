@@ -1,0 +1,25 @@
+{
+    {% if htusername %}
+        "userlist {{ project_name_prefix }}{{ project_name }}_userlist": [
+            "user {{ htusername }} insecure-password {{ htpasswd }}"
+        ],
+    {% endif %}
+
+    "frontend all": [
+        "# {{ project_name_prefix }}{{ project_name }}",
+        "acl {{ project_name_prefix }}{{ project_name }}_host hdr_end(host) -i {{ website_name }}",
+        "use_backend {{ project_name_prefix }}{{ project_name }}_static if static {{ project_name_prefix }}{{ project_name }}_host",
+        "use_backend {{ project_name_prefix }}{{ project_name }}_django if {{ project_name_prefix }}{{ project_name }}_host"
+
+        {% if htusername %}
+            , "acl {{ project_name_prefix }}{{ project_name }}_auth http_auth({{ project_name_prefix }}{{ project_name }}_userlist)",
+            "http-request auth realm {{ project_name_prefix }}{{ project_name }} if {{ project_name_prefix }}{{ project_name }}_host !{{ project_name_prefix }}{{ project_name }}_auth"
+        {% endif %}
+    ],
+    "backend s-startproject_django": [
+        "server django 127.0.0.1:8000 check"
+    ],
+    "backend s-startproject_static": [
+        "server static 127.0.0.1:9000 check"
+    ]
+}
