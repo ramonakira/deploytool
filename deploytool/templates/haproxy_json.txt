@@ -16,10 +16,10 @@
             "http-request auth realm {{ project_name_prefix }}{{ project_name }} if {{ project_name_prefix }}{{ project_name }}_host !{{ project_name_prefix }}{{ project_name }}_auth"
         {% endif %}
     ],
-    "backend s-startproject_django": [
+    "backend {{ project_name_prefix }}{{ project_name }}_django": [
         "server django 127.0.0.1:8000 check"
     ],
-    "backend s-startproject_static": [
+    "backend {{ project_name_prefix }}{{ project_name }}_static": [
         "server static 127.0.0.1:9000 check"
     ]
 }
