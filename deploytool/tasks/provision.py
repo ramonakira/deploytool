@@ -79,6 +79,9 @@ class Setup(ProvisioningTask):
             # remove all remote project files
             $ rm -rf /var/www/vhosts/the_project_full_name
             $ rm /etc/nginx/conf.d/vhosts-the_projects_full_name.conf
+            $ rm -f /etc/supervisor/conf.d/the_projects_full_name.conf
+            $ rm -f /etc/haproxy/conf.d/the_projects_full_name.json
+            $ /etc/init.d/haproxy restart
 
             Use a DBMS (i.e. Sequel Pro) for managing databases and its users.
     """

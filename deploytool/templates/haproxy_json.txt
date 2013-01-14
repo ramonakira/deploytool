@@ -17,9 +17,9 @@
         {% endif %}
     ],
     "backend {{ project_name_prefix }}{{ project_name }}_django": [
-        "server django 127.0.0.1:8000 check"
+        "server django 127.0.0.1:{{ django_port }} check"
     ],
     "backend {{ project_name_prefix }}{{ project_name }}_static": [
-        "server static 127.0.0.1:9000 check"
+        "server static 127.0.0.1:{{ nginx_port }} check"
     ]
 }
