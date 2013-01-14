@@ -10,8 +10,10 @@ class DatabaseOperations(object):
         return output == '1'
 
     def create_database(self, database_name, owner, password):
-        if not self.database_exists(database_name):
+        if not self.user_exists(owner):
             self.sudo_postgres('createuser %s' % owner)
+
+        if not self.database_exists(database_name):
             self.sudo_postgres('createdb %s -O %s' % (database_name, owner))
 
     def backup_database(self, database_name, username, password, file_path):
@@ -32,3 +34,7 @@ class DatabaseOperations(object):
 
     def sudo_postgres(self, command):
         return sudo(command, user='postgres')
+
+    def user_exists(self, user):
+        output = self.execute("SELECT 1 FROM pg_roles WHERE rolname='%s'" % user)
+        return output == '1'
