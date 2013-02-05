@@ -12,13 +12,10 @@ from deploytool.db import get_database_operations
 from deploytool.utils.commands import upload_jinja_template, get_template_paths, get_python_version
 
 
-HAPROXY_CONF_DIR = '/etc/haproxy/'
-HAPROXY_CONF_FILE = os.path.join(HAPROXY_CONF_DIR, 'haproxy.cfg')
 NGINX_CONFD_PATH = '/etc/nginx/conf.d'
 PASSWD_FILE = '/etc/passwd'
 SUPERVISOR_CONFD_PATH = '/etc/supervisor/conf.d'
 NGINX_CONFIGTEST = '/etc/init.d/nginx configtest'
-HAPROXY_INITD = '/etc/init.d/haproxy'
 NGINX_INITD = '/etc/init.d/nginx'
 
 
@@ -80,8 +77,6 @@ class Setup(ProvisioningTask):
             $ rm -rf /var/www/vhosts/the_project_full_name
             $ rm /etc/nginx/conf.d/vhosts-the_projects_full_name.conf
             $ rm -f /etc/supervisor/conf.d/the_projects_full_name.conf
-            $ rm -f /etc/haproxy/conf.d/the_projects_full_name.json
-            $ /etc/init.d/haproxy restart
 
             Use a DBMS (i.e. Sequel Pro) for managing databases and its users.
     """
@@ -116,7 +111,6 @@ class Setup(ProvisioningTask):
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
         nginx_conf_path = NGINX_CONFD_PATH
-        haproxy_conf_path = HAPROXY_CONF_FILE
         python_version = get_python_version()
 
         # check if vhosts path exists
@@ -247,8 +241,8 @@ class Setup(ProvisioningTask):
         print(green('\nCreating vhost conf files'))
         try:
             output = run('%s | %s | %s | %s' % (
-                'grep "server django 127.0.0.1:" %s' % haproxy_conf_path,
-                r"sed 's/.*server django 127\.0\.0\.1\:\([0-9]*\).*/\1/'",
+                'grep "server 127.0.0.1:" %s/*.conf' % nginx_conf_path,
+                r"sed 's/.*server 127\.0\.0\.1\:\([0-9]*\).*/\1/'",
                 'sort -nr',
                 'head -1'
             ))
@@ -256,25 +250,9 @@ class Setup(ProvisioningTask):
         except:
             django_port_nr = 8000
 
-        print('Django port %s will be used for this project' % magenta(django_port_nr))
-
-        try:
-            output = run('%s | %s | %s | %s' % (
-                'grep "server static 127.0.0.1:" %s' % haproxy_conf_path,
-                r"sed 's/.*server static 127\.0\.0\.1\:\([0-9]*\).*/\1/'",
-                'sort -nr',
-                'head -1'
-            ))
-            nginx_port_nr = int(output) + 1
-        except:
-            nginx_port_nr = 9000
-
-        print('Nginx port %s will be used for this project' % magenta(nginx_port_nr))
-
         # assemble context for conf files
         context = {
             'django_port': django_port_nr,
-            'nginx_port': nginx_port_nr,
             'current_instance_path': env.current_instance_path,
             'website_name': env.website_name,
             'project_name': env.project_name,
@@ -301,13 +279,6 @@ class Setup(ProvisioningTask):
             template_paths=get_template_paths()
         )
 
-        upload_jinja_template(
-            filenames=['override_haproxy_json.txt', 'haproxy_json.txt'],
-            destination=os.path.join(HAPROXY_CONF_DIR, 'conf.d', '%s%s.json' % (env.project_name_prefix, env.project_name)),
-            context=context,
-            template_paths=get_template_paths()
-        )
-
         # chown project for project user
         print(green('\nChanging ownership of %s to `%s`' % (env.vhost_path, project_user)))
         sudo('chown -R %s:%s %s' % (project_user, project_user, env.vhost_path))
@@ -320,7 +291,6 @@ class Setup(ProvisioningTask):
 
         if confirm(yellow('\nOK to restart webserver?')):
             with settings(show('stdout')):
-                sudo('%s restart' % HAPROXY_INITD)
                 sudo('%s restart' % NGINX_INITD)
                 print('')
         else:
