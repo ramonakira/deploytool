@@ -176,7 +176,7 @@ class Setup(ProvisioningTask):
         # TODO: security issue for password prompt
         print(yellow('\nProvide info for file creation:'))
         database_name = prompt('Database name: ', default=project_user)
-        database_user = prompt('Database username (max 16 characters for MySQL): ', default=project_user)
+        database_user = prompt('Database username: ', default=project_user)
 
         if database_operations.needs_password:
             database_pass = prompt('Database password: ', validate=self._validate_password)
