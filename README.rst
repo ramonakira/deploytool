@@ -73,6 +73,7 @@ When you `exit` from the remote, the deploy will continue where it left off.
 Where {pause_moment} can be one of:
 
 * before_deploy_source
+* before_compass_compile
 * before_create_virtualenv
 * before_pip_install
 * after_pip_install
@@ -107,6 +108,7 @@ Hooks can be attached to the deploy-flow of an instance like this:
 The available hooks are:
 
 * before_deploy_source
+* before_compass_compile
 * before_create_virtualenv
 * before_pip_install
 * after_pip_install
