@@ -160,7 +160,7 @@ class Deployment(RemoteTask):
             remote_stamp = utils.instance.get_instance_stamp(current_instance)
 
             # first deploy to remote
-            if not remote_stamp:
+            if '/' in remote_stamp:
                 print(green('\nFirst deploy to remote.'))
 
             # deployed commit is not in your local repository
