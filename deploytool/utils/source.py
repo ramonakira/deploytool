@@ -22,8 +22,43 @@ def transfer_source(upload_path, tree):
         local('rm -f ./%s' % tar_file)
 
 
-def compass_compile(upload_path, tree):
-    pass
+def compass_compile(upload_path, tree, compass_version):
+    """
+    Check your local compass version
+    Compile compass project locally
+    Upload local static dir to remote
+    """
+
+    local_compass_version = local('compass version -q', capture=True)
+    if (local_compass_version == compass_version):
+
+        local_tmp_dir = '.tmp'
+        local_tmp_tar = 'tmp.tar'
+
+        local('git archive --output=%s %s' % (local_tmp_tar, tree))
+        local('mkdir -p %s' % local_tmp_dir)
+        local('tar -C %s -xf %s' % (local_tmp_dir, local_tmp_tar))
+        local('compass clean && compass compile %s --environment production' % local_tmp_dir)
+
+        local_static_tar = 'static.tar'
+        local('tar -C %s -cf %s %s' % (local_tmp_dir, local_static_tar, 'static'))
+        upload_static = put(local_static_tar, upload_path)
+
+        # upload static files
+        if upload_static.succeeded:
+            with cd(upload_path):
+                run('tar -xf %s' % upload_static[0])
+                run('rm -f ./%s' % local_static_tar)
+
+            # remove local .tmp dir and tar files, recompile compass project
+            local('rm -f %s' % local_tmp_tar)
+            local('rm -f %s' % local_static_tar)
+            local('rm -rf %s' % local_tmp_dir)
+            local('compass clean && compass compile')
+        else:
+            abort(red('Deploy aborted because compass compiling failed.'))
+    else:
+        abort(red('Deploy aborted because your local compass version is different from deploy settings.'))
 
 
 def create_tag(tag):
@@ -66,6 +101,7 @@ def get_branch_name():
 def get_commit_id(tree):
 
     return local('git rev-parse %s' % tree, capture=True).strip()
+
 
 def get_head():
 

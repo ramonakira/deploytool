@@ -234,8 +234,8 @@ class Deployment(RemoteTask):
                 if ('before_compass_compile' in env):
                     env.before_deploy_source(env, *args, **kwargs)
 
-                print(green('\Compass compile.'))
-                utils.source.compass_compile(upload_path=env.source_path, tree=self.stamp)
+                print(green('\nCompiling compass project and upload static files.'))
+                utils.source.compass_compile(upload_path=env.source_path, tree=self.stamp, compass_version=env.compass_version)
 
             # before_create_virtualenv pause
             if ('before_create_virtualenv' in pause_at):

@@ -28,6 +28,7 @@ def backup_database(virtualenv_path, scripts_path, file_path):
         '%s/db_backup.py "%s"' % (scripts_path, file_path)
     )
 
+
 def restore_database(virtualenv_path, scripts_path, file_path):
     """ Drop, create, restore """
 
