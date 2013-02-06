@@ -1,4 +1,3 @@
-import datetime
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
@@ -27,6 +26,7 @@ def backup_database(virtualenv_path, scripts_path, file_path):
         virtualenv_path,
         '%s/db_backup.py "%s"' % (scripts_path, file_path)
     )
+
 
 def restore_database(virtualenv_path, scripts_path, file_path):
     """ Drop, create, restore """

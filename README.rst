@@ -73,6 +73,7 @@ When you `exit` from the remote, the deploy will continue where it left off.
 Where {pause_moment} can be one of:
 
 * before_deploy_source
+* before_compass_compile
 * before_create_virtualenv
 * before_pip_install
 * after_pip_install
@@ -107,6 +108,7 @@ Hooks can be attached to the deploy-flow of an instance like this:
 The available hooks are:
 
 * before_deploy_source
+* before_compass_compile
 * before_create_virtualenv
 * before_pip_install
 * after_pip_install
@@ -115,6 +117,12 @@ The available hooks are:
 * before_restart
 * after_restart
 * test
+
+
+Compass compiling
+=================
+
+When you set a `compass_version` number in your settings. The deploy task will compile your compass project locally, upload the locally generated root static dir to the remote. Remember that your compass config must compile your css to the root static dir of your django project. With this setting you can ignore your generated css files in your repository.
 
 
 Examples
