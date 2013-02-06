@@ -57,6 +57,7 @@ class RemoteHost(Task):
             'vhost_path': vhost_path,
             'scripts_path': os.path.join(vhost_path, 'scripts'),
             'user': '%s%s' % (env.project_name_prefix, env.project_name),
+            'compass_version': None,
         })
 
 
@@ -222,6 +223,15 @@ class Deployment(RemoteTask):
 
             print(green('\nDeploying source.'))
             utils.source.transfer_source(upload_path=env.source_path, tree=self.stamp)
+
+            # before_compass_compile pause
+            if ('before_compass_compile_source' in pause_at):
+                print(green('\nOpening remote shell - before_compass_compile_source.'))
+                open_shell()
+
+            # before_compass_compile hook
+            if ('before_compass_compile_source' in env):
+                env.before_deploy_source(env, *args, **kwargs)
 
             # before_create_virtualenv pause
             if ('before_create_virtualenv' in pause_at):
