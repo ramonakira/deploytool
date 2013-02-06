@@ -31,9 +31,8 @@ def compass_compile(upload_path, tree, compass_version):
 
     local_compass_version = local('compass version -q', capture=True)
     if (local_compass_version == compass_version):
-
-        local_tmp_dir = '.tmp'
-        local_tmp_tar = 'tmp.tar'
+        local_tmp_dir = '.compass_compile_tmp'
+        local_tmp_tar = 'compass_compile_tmp.tar'
 
         local('git archive --output=%s %s' % (local_tmp_tar, tree))
         local('mkdir -p %s' % local_tmp_dir)
