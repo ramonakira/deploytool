@@ -22,6 +22,10 @@ def transfer_source(upload_path, tree):
         local('rm -f ./%s' % tar_file)
 
 
+def compass_compile(upload_path, tree):
+    pass
+
+
 def create_tag(tag):
 
     local('git tag %s' % tag)

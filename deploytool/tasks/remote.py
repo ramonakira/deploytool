@@ -224,14 +224,18 @@ class Deployment(RemoteTask):
             print(green('\nDeploying source.'))
             utils.source.transfer_source(upload_path=env.source_path, tree=self.stamp)
 
-            # before_compass_compile pause
-            if ('before_compass_compile_source' in pause_at):
-                print(green('\nOpening remote shell - before_compass_compile_source.'))
-                open_shell()
+            if env.compass_version:
+                # before_compass_compile pause
+                if ('before_compass_compile_source' in pause_at):
+                    print(green('\nOpening remote shell - before_compass_compile_source.'))
+                    open_shell()
 
-            # before_compass_compile hook
-            if ('before_compass_compile_source' in env):
-                env.before_deploy_source(env, *args, **kwargs)
+                # before_compass_compile hook
+                if ('before_compass_compile_source' in env):
+                    env.before_deploy_source(env, *args, **kwargs)
+
+                print(green('\Compass compile.'))
+                utils.source.compass_compile(upload_path=env.source_path, tree=self.stamp)
 
             # before_create_virtualenv pause
             if ('before_create_virtualenv' in pause_at):
