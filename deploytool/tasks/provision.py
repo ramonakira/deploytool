@@ -110,6 +110,7 @@ class Setup(ProvisioningTask):
         user_home_path = os.path.join('/', 'home', project_user)
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
+        htpasswd_path = os.path.join(env.vhost_path, 'htpasswd')
         nginx_conf_path = NGINX_CONFD_PATH
         python_version = get_python_version()
 
@@ -246,13 +247,21 @@ class Setup(ProvisioningTask):
                 'sort -nr',
                 'head -1'
             ))
-            django_port_nr = int(output) + 1
+            new_port_nr = int(output) + 1
         except:
-            django_port_nr = 8000
+            new_port_nr = 8000
+
+        print('Port %s will be used for this project' % magenta(new_port_nr))
+
+        # check if htpasswd is used (some nginx vhost lines will be commented if it isn't)
+        if not exists(htpasswd_path, use_sudo=True):
+            use_htpasswd = '#'
+        else:
+            use_htpasswd = ''
 
         # assemble context for conf files
         context = {
-            'django_port': django_port_nr,
+            'django_port': new_port_nr,
             'current_instance_path': env.current_instance_path,
             'website_name': env.website_name,
             'project_name': env.project_name,

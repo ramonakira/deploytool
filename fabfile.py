@@ -18,12 +18,14 @@ local_items = {
 }.items()
 
 staging_items = {
+    'compass_version': '0.12.2',
     'website_name': 'staging.example.com',
     'project_name_prefix': 's-',
     'environment': 'staging',
 }.items()
 
 live_items = {
+    'compass_version': '0.12.2',
     'website_name': 'www.example.com',
     'project_name_prefix': 'l-',
     'environment': 'live',
