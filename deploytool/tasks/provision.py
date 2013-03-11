@@ -252,11 +252,11 @@ class Setup(ProvisioningTask):
                 'sort -nr',
                 'head -1'
             ))
-            django_port_nr = int(output) + 1
+            new_port_nr = int(output) + 1
         except:
-            django_port_nr = 8000
+            new_port_nr = 8000
 
-        print('Django port %s will be used for this project' % magenta(django_port_nr))
+        print('Port %s will be used for this project' % magenta(new_port_nr))
 
         try:
             output = run('%s | %s | %s | %s' % (
@@ -273,7 +273,7 @@ class Setup(ProvisioningTask):
 
         # assemble context for conf files
         context = {
-            'django_port': django_port_nr,
+            'django_port': new_port_nr,
             'nginx_port': nginx_port_nr,
             'current_instance_path': env.current_instance_path,
             'website_name': env.website_name,

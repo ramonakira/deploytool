@@ -59,6 +59,7 @@ class RemoteHost(Task):
             'vhost_path': vhost_path,
             'scripts_path': os.path.join(vhost_path, 'scripts'),
             'user': '%s%s' % (env.project_name_prefix, env.project_name),
+            'compass_version': env.compass_version if 'compass_version' in env else None,
         })
 
         env.setdefault('project_path_name', env.project_name)
@@ -165,7 +166,7 @@ class Deployment(RemoteTask):
             remote_stamp = utils.instance.get_instance_stamp(current_instance)
 
             # first deploy to remote
-            if not remote_stamp:
+            if '/' in remote_stamp:
                 print(green('\nFirst deploy to remote.'))
 
             # deployed commit is not in your local repository
@@ -227,6 +228,19 @@ class Deployment(RemoteTask):
 
             print(green('\nDeploying source.'))
             utils.source.transfer_source(upload_path=env.source_path, tree=self.stamp)
+
+            if env.compass_version:
+                # before_compass_compile pause
+                if ('before_compass_compile' in pause_at):
+                    print(green('\nOpening remote shell - before_compass_compile.'))
+                    open_shell()
+
+                # before_compass_compile hook
+                if ('before_compass_compile' in env):
+                    env.before_deploy_source(env, *args, **kwargs)
+
+                print(green('\nCompiling compass project and upload static files.'))
+                utils.source.compass_compile(upload_path=env.source_path, tree=self.stamp, compass_version=env.compass_version)
 
             # before_create_virtualenv pause
             if ('before_create_virtualenv' in pause_at):
