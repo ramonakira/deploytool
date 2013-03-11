@@ -4,7 +4,7 @@ upstream backend-{{ project_name_prefix }}{{ project_name }} {
 
 server {
     listen 80;
-    server_name website_name;
+    server_name {{ website_name }};
 
     client_max_body_size 5M;
 
