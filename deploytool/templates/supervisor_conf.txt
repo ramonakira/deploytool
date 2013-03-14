@@ -1,6 +1,6 @@
 {% block body %}
 [program:{{ project_name_prefix }}{{ project_name }}]
-command={{ current_instance_path }}/env/bin/python manage.py run_gunicorn --access-logfile={{ log_path }}/gunicorn_access.log --error-logfile={{ log_path }}/gunicorn_error.log -b 127.0.0.1:{{ django_port }}
+command={{ current_instance_path }}/env/bin/python manage.py run_gunicorn --access-logfile={{ log_path }}/gunicorn_access.log --error-logfile={{ log_path }}/gunicorn_error.log -b 127.0.0.1:{{ django_port }} -p {{ vhost_path }}/gunicorn.pid
 directory={{ current_instance_path }}/{{ project_name }}
 user={{ project_user }}
 {% endblock %}

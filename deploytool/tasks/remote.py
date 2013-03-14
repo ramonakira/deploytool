@@ -11,7 +11,7 @@ from fabric.operations import open_shell
 from fabric.tasks import Task
 
 import deploytool.utils as utils
-from deploytool.utils.commands import get_python_version
+from deploytool.utils.commands import get_python_version, restart_process
 
 
 class RemoteHost(Task):
@@ -383,8 +383,9 @@ class Deployment(RemoteTask):
         print(green('\nUpdating instance symlinks.'))
         utils.instance.set_current_instance(env.vhost_path, env.instance_path)
 
-        print(green('\nRestarting website.'))
-        sudo('supervisorctl restart %s%s' % (env.project_name_prefix, env.project_name))
+        print(green('\nRestarting Website.'))
+        if not restart_process('%s/gunicorn.pid' % env.vhost_path):
+            print(yellow('\Website is not running; run restart command'))
 
         # after_restart pause
         if ('after_restart' in pause_at):
