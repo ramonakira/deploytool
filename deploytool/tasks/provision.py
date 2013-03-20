@@ -427,4 +427,10 @@ class Restart(ProvisioningTask):
         restart_supervisor_job(job_name)
 
         if 'after_restart' in env:
+            env.update(
+                dict(
+                    project_path=os.path.join(env.current_instance_path, env.project_name),
+                    virtualenv_path=os.path.join(env.current_instance_path, 'env'),
+                )
+            )
             env.after_restart(env, *args, **kwargs)
