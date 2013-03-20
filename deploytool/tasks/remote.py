@@ -385,7 +385,7 @@ class Deployment(RemoteTask):
 
         print(green('\nRestarting Website.'))
         if not restart_process('%s/gunicorn.pid' % env.vhost_path):
-            print(yellow('\Website is not running; run restart command'))
+            print(yellow('\nWebsite is not running; run restart command'))
 
         # after_restart pause
         if ('after_restart' in pause_at):
