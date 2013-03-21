@@ -430,6 +430,7 @@ class Restart(ProvisioningTask):
             env.update(
                 dict(
                     project_path=os.path.join(env.current_instance_path, env.project_name),
+                    project_user='%s%s' % (env.project_name_prefix, env.project_name),
                     virtualenv_path=os.path.join(env.current_instance_path, 'env'),
                 )
             )

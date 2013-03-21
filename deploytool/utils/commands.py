@@ -104,18 +104,23 @@ def touch_wsgi(vhost_path):
     return run('touch %s/django.wsgi' % vhost_path)
 
 
-def python_run(virtualenv_path, command):
+def python_run(virtualenv_path, command, sudo_username):
     """ Execute Python commands for current virtual environment """
 
-    return run('%s/bin/python %s' % (virtualenv_path, command))
+    full_command = '%s/bin/python %s' % (virtualenv_path, command)
+
+    if sudo_username:
+        return sudo(full_command, user=sudo_username)
+    else:
+        return run(full_command)
 
 
-def django_manage(virtualenv_path, project_path, command):
+def django_manage(virtualenv_path, project_path, command, sudo_username=None):
     """ Execute Django management command """
 
-    python_path = os.path.join(project_path, 'manage.py')
-    python_command = '%s %s' % (python_path, command)
-    python_run(virtualenv_path, python_command)
+    with cd(project_path):
+        python_command = 'manage.py %s' % command
+        python_run(virtualenv_path, python_command, sudo_username)
 
 
 def upload_jinja_template(filenames, destination, context, template_paths):
