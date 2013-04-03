@@ -182,22 +182,8 @@ def get_python_version():
     return run(command)
 
 
-def restart_process(pid_filename):
-    """
-    Restart a process
-    - Send HUP signal to the process
-    - Only does this if the pid-file exists
-    - Result: restarted
-    """
-    if exists(pid_filename):
-        run('kill -HUP `cat %s`' % pid_filename)
-        return True
-    else:
-        return False
-
-
 def restart_supervisor_job(job_name):
     """
     Restart a job using supervisor; this requires sudo.
     """
-    sudo('supervisorctl restart %s' % job_name)
+    run('supervisorctl restart %s' % job_name)

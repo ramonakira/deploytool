@@ -11,7 +11,7 @@ from fabric.operations import open_shell
 from fabric.tasks import Task
 
 import deploytool.utils as utils
-from deploytool.utils.commands import get_python_version, restart_process
+from deploytool.utils.commands import get_python_version, restart_supervisor_job
 
 
 class RemoteHost(Task):
@@ -384,8 +384,8 @@ class Deployment(RemoteTask):
         utils.instance.set_current_instance(env.vhost_path, env.instance_path)
 
         print(green('\nRestarting Website.'))
-        if not restart_process('%s/gunicorn.pid' % env.vhost_path):
-            print(yellow('\nWebsite is not running; run restart command'))
+        job_name = '%s%s' % (env.project_name_prefix, env.project_name)
+        restart_supervisor_job(job_name)
 
         # after_restart pause
         if ('after_restart' in pause_at):
@@ -589,3 +589,25 @@ class Test(RemoteTask):
         # test hook
         if ('test' in env):
             env.test(env, *args, **kwargs)
+
+
+class Restart(RemoteTask):
+    """
+    Restart the site using supervisor.
+    - Also call 'after_restart' hook.
+    """
+    name = 'restart'
+
+    requirements = [
+        'project_name',
+        'project_name_prefix',
+    ]
+
+    def __call__(self, *args, **kwargs):
+        print(green('\nRestarting Website.'))
+
+        job_name = '%s%s' % (env.project_name_prefix, env.project_name)
+        restart_supervisor_job(job_name)
+
+        if 'after_restart' in env:
+            env.after_restart(env, *args, **kwargs)

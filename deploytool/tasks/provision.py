@@ -9,7 +9,7 @@ from fabric.operations import require
 from fabric.tasks import Task
 
 from deploytool.db import get_database_operations
-from deploytool.utils.commands import upload_jinja_template, get_template_paths, get_python_version, restart_supervisor_job
+from deploytool.utils.commands import upload_jinja_template, get_template_paths, get_python_version
 
 
 NGINX_CONFD_PATH = '/etc/nginx/conf.d'
@@ -406,32 +406,3 @@ class Keys(ProvisioningTask):
 
         authorized_keys = sudo('cat %s' % auth_keys_file)
         return bool(public_key in authorized_keys.split('\r\n'))
-
-
-class Restart(ProvisioningTask):
-    """
-    Restart the site using supervisor.
-    - Also call 'after_restart' hook.
-    """
-    name = 'restart'
-
-    requirements = [
-        'project_name',
-        'project_name_prefix',
-    ]
-
-    def __call__(self, *args, **kwargs):
-        print(green('\nRestarting Website.'))
-
-        job_name = '%s%s' % (env.project_name_prefix, env.project_name)
-        restart_supervisor_job(job_name)
-
-        if 'after_restart' in env:
-            env.update(
-                dict(
-                    project_path=os.path.join(env.current_instance_path, env.project_name),
-                    project_user='%s%s' % (env.project_name_prefix, env.project_name),
-                    virtualenv_path=os.path.join(env.current_instance_path, 'env'),
-                )
-            )
-            env.after_restart(env, *args, **kwargs)
