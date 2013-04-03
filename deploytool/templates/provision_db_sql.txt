@@ -1,4 +1,4 @@
-CREATE DATABASE IF NOT EXISTS `%(database_name)s`;
+CREATE DATABASE IF NOT EXISTS `%(database_name)s` DEFAULT CHARACTER SET `utf8`;
 
 GRANT ALL PRIVILEGES ON `%(database_name)s`.*
     TO '%(username)s'@'localhost'
