@@ -14,7 +14,7 @@ class DatabaseOperations(object):
             self.sudo_postgres('createuser %s' % owner)
 
         if not self.database_exists(database_name):
-            self.sudo_postgres('createdb %s -O %s' % (database_name, owner))
+            self.sudo_postgres('createdb %s --owner=%s --encoding=utf8' % (database_name, owner))
 
     def backup_database(self, database_name, username, password, file_path):
         run(

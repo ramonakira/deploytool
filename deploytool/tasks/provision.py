@@ -252,12 +252,6 @@ class Setup(ProvisioningTask):
 
         print('Port %s will be used for this project' % magenta(new_port_nr))
 
-        # check if htpasswd is used (some nginx vhost lines will be commented if it isn't)
-        if not exists(htpasswd_path, use_sudo=True):
-            use_htpasswd = '#'
-        else:
-            use_htpasswd = ''
-
         # assemble context for conf files
         context = {
             'django_port': new_port_nr,
