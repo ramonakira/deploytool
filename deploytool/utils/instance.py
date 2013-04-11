@@ -17,12 +17,30 @@ def get_obsolete_instances(vhost_path):
         with cd(vhost_path):
 
             # list directories, display name only, sort by ctime, filter by git-commit-tag-length
-            command = 'ls -1tcd */ | awk \'{ if(length($1) == 41) { print substr($1,0,40) }}\''
+            command = 'ls -1tcd */ | awk \'{ if(length($1) == 41) { print $1 }}\''
 
             # split into list and return everything but the 3 newest instances
             return run(command).split()[3:]
     except:
         return []
+
+
+def prune_obsolete_instances():
+    """ Find old instances and remove them to free up space """
+
+    removed_instances = []
+
+    for instance in get_obsolete_instances(env.vhost_path):
+        is_current = bool(get_instance_stamp(env.current_instance_path) == instance)
+        is_previous = bool(get_instance_stamp(env.previous_instance_path) == instance)
+
+        if not (is_current or is_previous):
+            commands.delete(os.path.join(env.vhost_path, instance))
+            removed_instances.append(instance)
+
+    if removed_instances:
+        print(green('\nThese old instances were removed from remote filesystem:'))
+        print(removed_instances)
 
 
 def backup_database(file_path):
