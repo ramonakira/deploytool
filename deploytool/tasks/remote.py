@@ -360,11 +360,7 @@ class Deployment(RemoteTask):
 
             if exists(backup_file):
                 print(yellow('\nRestoring database.'))
-                utils.instance.restore_database(
-                    env.virtualenv_path,
-                    env.scripts_path,
-                    backup_file
-                )
+                utils.instance.restore_database(backup_file)
 
             print(green('\nRemoving this instance from filesystem.'))
             utils.commands.delete(env.instance_path)
@@ -424,8 +420,6 @@ class Rollback(RemoteTask):
         try:
             print(green('\nRestoring database to start of this instance.'))
             utils.instance.restore_database(
-                env.virtualenv_path,
-                env.scripts_path,
                 os.path.join(env.backup_path, 'db_backup_start.sql')
             )
 
@@ -556,6 +550,15 @@ class Database(RemoteTask):
 
         print(green('\nSaved backup to:'))
         print(os.path.join(cwd, output_filename))
+
+
+class RestoreDatabase(RemoteTask):
+    name = 'restore_database'
+
+    def __call__(self):
+        utils.instance.restore_database(
+            os.path.join(env.backup_path, 'db_backup_start.sql')
+        )
 
 
 class Test(RemoteTask):

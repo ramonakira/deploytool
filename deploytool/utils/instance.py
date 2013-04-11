@@ -55,7 +55,7 @@ def backup_database(file_path):
     )
 
 
-def restore_database(virtualenv_path, scripts_path, file_path):
+def restore_database(file_path):
     """ Drop, create, restore """
 
     database_operations = get_database_operations(env.database_engine)
