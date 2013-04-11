@@ -397,23 +397,15 @@ class Deployment(RemoteTask):
             env.after_restart(env, *args, **kwargs)
 
         self.log(success=True)
-        self.prune_instances()
 
-    def prune_instances(self):
-        """ Find old instances and remove them to free up space """
+        utils.instance.prune_obsolete_instances()
 
-        old_instances = utils.instance.get_obsolete_instances(env.vhost_path)
 
-        for instance in old_instances:
-            is_current = bool(utils.instance.get_instance_stamp(env.current_instance_path) == instance)
-            is_previous = bool(utils.instance.get_instance_stamp(env.previous_instance_path) == instance)
+class RemoveOldInstances(RemoteTask):
+    name = 'remove_old_instances'
 
-            if not (is_current or is_previous):
-                utils.commands.delete(os.path.join(env.vhost_path, instance))
-
-        if len(old_instances) > 0:
-            print(green('\nThese old instances were removed from remote filesystem:'))
-            print(old_instances)
+    def __call__(self, *args, **kwargs):
+        utils.instance.prune_obsolete_instances()
 
 
 class Rollback(RemoteTask):
