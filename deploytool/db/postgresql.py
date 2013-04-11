@@ -14,7 +14,15 @@ class DatabaseOperations(object):
             self.sudo_postgres('createuser %s' % owner)
 
         if not self.database_exists(database_name):
-            self.sudo_postgres('createdb %s -O %s' % (database_name, owner))
+            self._create_database(database_name, owner, True)
+
+    def _create_database(self, database_name, owner, sudo):
+        command = 'createdb %s --owner=%s --encoding=utf8' % (database_name, owner)
+
+        if sudo:
+            self.sudo_postgres(command)
+        else:
+            run(command)
 
     def backup_database(self, database_name, username, password, file_path):
         run(
@@ -23,7 +31,7 @@ class DatabaseOperations(object):
 
     def restore_database(self, database_name, username, password, file_path):
         run('dropdb %s' % database_name)
-        self.create_database(database_name, username, password)
+        self._create_database(database_name, username, False)
         run('psql -d %s -f %s' % (database_name, file_path))
 
     def execute(self, sql):
