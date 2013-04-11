@@ -98,12 +98,6 @@ def rename(old_path, new_path):
     run('mv %s %s' % (old_path, new_path))
 
 
-def touch_wsgi(vhost_path):
-    """ Touch WSGI to restart website """
-
-    return run('touch %s/django.wsgi' % vhost_path)
-
-
 def python_run(virtualenv_path, command, sudo_username):
     """ Execute Python commands for current virtual environment """
 
@@ -187,3 +181,8 @@ def restart_supervisor_job(job_name):
     Restart a job using supervisor; this requires sudo.
     """
     run('supervisorctl restart %s' % job_name)
+
+
+def restart_gunicorn():
+    job_name = '%s%s' % (env.project_name_prefix, env.project_name)
+    restart_supervisor_job(job_name)

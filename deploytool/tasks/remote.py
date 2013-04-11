@@ -11,7 +11,7 @@ from fabric.operations import open_shell
 from fabric.tasks import Task
 
 import deploytool.utils as utils
-from deploytool.utils.commands import get_python_version, restart_supervisor_job
+from deploytool.utils.commands import get_python_version, restart_gunicorn
 
 
 class RemoteHost(Task):
@@ -384,8 +384,7 @@ class Deployment(RemoteTask):
         utils.instance.set_current_instance(env.vhost_path, env.instance_path)
 
         print(green('\nRestarting Website.'))
-        job_name = '%s%s' % (env.project_name_prefix, env.project_name)
-        restart_supervisor_job(job_name)
+        restart_gunicorn()
 
         # after_restart pause
         if ('after_restart' in pause_at):
@@ -434,7 +433,7 @@ class Rollback(RemoteTask):
             utils.instance.rollback(env.vhost_path)
 
             print(green('\nRestarting website.'))
-            utils.commands.touch_wsgi(env.vhost_path)
+            restart_gunicorn()
 
             print(green('\nRemoving this instance from filesystem.'))
             utils.commands.delete(env.instance_path)
@@ -598,8 +597,7 @@ class Restart(RemoteTask):
     def __call__(self, *args, **kwargs):
         print(green('\nRestarting Website.'))
 
-        job_name = '%s%s' % (env.project_name_prefix, env.project_name)
-        restart_supervisor_job(job_name)
+        restart_gunicorn()
 
         if 'after_restart' in env:
             env.after_restart(env, *args, **kwargs)
