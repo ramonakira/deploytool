@@ -16,10 +16,12 @@ server {
         include /etc/nginx/conf.d/proxy.conf;
     }
 
+    {% block media %}
     location /media/ {
         root {{ current_instance_path }}/{{ project_name }};
         expires max;
     }
+    {% endblock %}
 
     location /static/ {
         root {{ current_instance_path }}/{{ project_name }};
