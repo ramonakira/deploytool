@@ -15,7 +15,6 @@ class DatabaseOperations(object):
 
         if not self.database_exists(database_name):
             self._create_database(database_name, owner, True)
-            self.sudo_postgres('createdb %s --owner=%s --encoding=utf8' % (database_name, owner))
 
     def _create_database(self, database_name, owner, sudo):
         command = 'createdb %s --owner=%s --encoding=utf8' % (database_name, owner)
