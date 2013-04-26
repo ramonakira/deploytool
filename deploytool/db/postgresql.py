@@ -11,7 +11,7 @@ class DatabaseOperations(object):
 
     def create_database(self, database_name, owner, password):
         if not self.user_exists(owner):
-            self.sudo_postgres('createuser %s' % owner)
+            self.sudo_postgres('createuser %s with createdb' % owner)
 
         if not self.database_exists(database_name):
             self._create_database(database_name, owner, True)
