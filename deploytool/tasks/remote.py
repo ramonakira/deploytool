@@ -60,6 +60,7 @@ class RemoteHost(Task):
             'scripts_path': os.path.join(vhost_path, 'scripts'),
             'user': '%s%s' % (env.project_name_prefix, env.project_name),
             'compass_version': env.compass_version if 'compass_version' in env else None,
+            'supervisor_path': os.path.join(vhost_path, 'supervisor'),
         })
 
         env.setdefault('project_path_name', env.project_name)

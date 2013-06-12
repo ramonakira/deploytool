@@ -9,7 +9,7 @@ from fabric.operations import require
 from fabric.tasks import Task
 
 from deploytool.db import get_database_operations
-from deploytool.utils.commands import upload_jinja_template, get_template_paths, get_python_version
+from deploytool.utils.commands import upload_jinja_template, get_template_paths, get_python_version, create_folder
 
 
 NGINX_CONFD_PATH = '/etc/nginx/conf.d'
@@ -99,6 +99,7 @@ class Setup(ProvisioningTask):
         'real_fabfile',
         'scripts_path',
         'website_name',
+        'supervisor_path'
     ]
 
     def __call__(self):
@@ -110,7 +111,6 @@ class Setup(ProvisioningTask):
         user_home_path = os.path.join('/', 'home', project_user)
         user_ssh_path = os.path.join(user_home_path, '.ssh')
         auth_keys_file = os.path.join(user_ssh_path, 'authorized_keys')
-        htpasswd_path = os.path.join(env.vhost_path, 'htpasswd')
         nginx_conf_path = NGINX_CONFD_PATH
         python_version = get_python_version()
 
@@ -167,6 +167,7 @@ class Setup(ProvisioningTask):
             env.log_path,
             env.media_path,
             env.scripts_path,
+            env.supervisor_path,
         ]
 
         for folder in folders_to_create:
@@ -267,13 +268,23 @@ class Setup(ProvisioningTask):
             'htpasswd': htpasswd,
         }
 
-        # create the conf files from template and transfer them to remote server
+        # create supervisor configuration file
         upload_jinja_template(
             filenames=['override_supervisor_conf.txt', 'supervisor_conf.txt'],
+            destination=os.path.join(env.supervisor_path, 'supervisor.conf'),
+            context=context,
+            template_paths=get_template_paths()
+        )
+
+        # create global supervisor configuration file
+        upload_jinja_template(
+            filenames=['supervisor_global.txt'],
             destination=os.path.join(SUPERVISOR_CONFD_PATH, '%s.conf' % project_user),
             context=context,
             template_paths=get_template_paths()
         )
+
+        # create nginx configuration file
         upload_jinja_template(
             filenames=['override_nginx_vhost.txt', 'nginx_vhost.txt'],
             destination=os.path.join(nginx_conf_path, 'vhosts-%s.conf' % project_user),
