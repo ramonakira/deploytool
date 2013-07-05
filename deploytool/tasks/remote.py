@@ -127,13 +127,14 @@ class RemoteTask(Task):
 
             # update fabric environment for instance settings
             instance_path = os.path.join(env.vhost_path, self.stamp)
+            full_project_name = '%s%s' % (env.project_name_prefix, env.project_name)
             env.update({
                 'backup_path': os.path.join(instance_path, 'backup'),
                 'instance_stamp': self.stamp,
                 'instance_path': instance_path,
-                'source_path': os.path.join(instance_path, env.project_name),
-                'project_path': os.path.join(instance_path, env.project_name),
-                'project_project_path': os.path.join(instance_path, env.project_name, env.project_path_name),
+                'source_path': os.path.join(instance_path, full_project_name),
+                'project_path': os.path.join(instance_path, full_project_name),
+                'project_project_path': os.path.join(instance_path, full_project_name, env.project_path_name),
                 'virtualenv_path': os.path.join(instance_path, 'env'),
             })
 
