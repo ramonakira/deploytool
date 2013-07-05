@@ -176,13 +176,14 @@ def get_python_version():
     return run(command)
 
 
-def restart_supervisor_job(job_name):
+def restart_supervisor_job(config_file, job_name):
     """
     Restart a job using supervisor; this requires sudo.
     """
-    run('supervisorctl restart %s' % job_name)
+    run('supervisorctl -c %s restart %s' % (config_file, job_name))
 
 
 def restart_gunicorn():
-    job_name = '%s%s' % (env.project_name_prefix, env.project_name)
-    restart_supervisor_job(job_name)
+    job_name = 'gunicorn_%s%s' % (env.project_name_prefix, env.project_name)
+    config_file = '%s/supervisor/supervisor.conf' % env.vhost_path
+    restart_supervisor_job(config_file, job_name)
