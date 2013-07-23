@@ -18,8 +18,6 @@ class RemoteHost(Task):
     """ HOST """
 
     requirements = [
-        'admin_email',
-        'website_name',
         'environment',
         'hosts',
         'project_name',
