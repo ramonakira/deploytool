@@ -88,6 +88,26 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
     run('%s/bin/pip install -r %s --download-cache=%s --use-mirrors --quiet --log=%s' % args)
 
 
+def pip_install_package(virtualenv_path, package, version, cache_path, log_path):
+    """ Install this python package using pip """
+
+    if not exists(virtualenv_path):
+        abort(red('Could not install package. Virtual environment not found.'))
+
+    # todo: add run_pip function?
+    log_file = os.path.join(log_path, 'pip.log')
+
+    run(
+        '%(virtualenv_path)s/bin/pip install %(package)s==%(version)s --download-cache=%(cache_path)s --use-mirrors --quiet --log=%(log_file)s' % dict(
+            virtualenv_path=virtualenv_path,
+            package=package,
+            version=version,
+            cache_path=cache_path,
+            log_file=log_file,
+        )
+    )
+
+
 def get_instance_stamp(instance_path):
     """ Reads symlinked (current/previous) instance and returns its sliced off stamp (git commit SHA1)  """
 

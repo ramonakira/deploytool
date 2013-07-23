@@ -288,6 +288,15 @@ class Deployment(RemoteTask):
             if ('after_pip_install' in env):
                 env.after_pip_install(env, *args, **kwargs)
 
+            print(green('\nInstall gunicorn.'))
+            utils.instance.pip_install_package(
+                env.virtualenv_path,
+                'gunicorn',
+                '17.5',
+                env.cache_path,
+                env.log_path
+            )
+
             print(green('\nCopying settings.py.'))
             utils.commands.copy(
                 from_path=os.path.join(env.vhost_path, 'settings.py'),
