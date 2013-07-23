@@ -1,5 +1,0 @@
-{% block body %}
-[program:supervisor_{{ project_name_prefix }}{{ project_name }}]
-command=supervisord -c {{ vhost_path }}/supervisor/supervisor.conf
-user={{ project_user }}
-{% endblock %}

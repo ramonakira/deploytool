@@ -47,7 +47,6 @@ database = tasks.remote.Database()
 test = tasks.remote.Test()
 
 # provisioning
-setup = tasks.provision.Setup()
 keys = tasks.provision.Keys()
 
 # generic
