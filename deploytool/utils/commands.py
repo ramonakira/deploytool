@@ -1,10 +1,6 @@
-import os
-
 from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
-
-import deploytool
 
 
 def get_folder_size(path):
@@ -129,12 +125,12 @@ def get_python_version():
 
 def restart_supervisor_job(config_file, job_name):
     """
-    Restart a job using supervisor; this requires sudo.
+    Restart a job using supervisor
     """
     run('supervisorctl -c %s restart %s' % (config_file, job_name))
 
 
-def restart_gunicorn():
-    job_name = 'gunicorn_%s%s' % (env.project_name_prefix, env.project_name)
+def restart_supervisor_jobs():
+    job_name = 'all'
     config_file = '%s/supervisor/supervisor.conf' % env.vhost_path
     restart_supervisor_job(config_file, job_name)
