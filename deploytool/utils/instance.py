@@ -1,8 +1,8 @@
 import os
 
-from fabric.api import *
-from fabric.colors import *
-from fabric.contrib.files import *
+from fabric.api import run, cd, env, abort
+from fabric.colors import green, red
+from fabric.contrib.files import exists
 
 from . import commands
 from . import postgresql

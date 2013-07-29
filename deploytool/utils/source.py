@@ -1,5 +1,5 @@
-from fabric.api import *
-from fabric.colors import *
+from fabric.api import local, put, cd, run, abort
+from fabric.colors import red
 
 
 def transfer_source(upload_path, tree):
@@ -27,7 +27,7 @@ def compass_compile(upload_path, tree, compass_version):
     """
 
     local_compass_version = local('compass _' + compass_version + '_ version -q', capture=True)
-    if (local_compass_version == compass_version):
+    if local_compass_version == compass_version:
         local_tmp_dir = '.compass_compile_tmp'
         local_tmp_tar = 'compass_compile_tmp.tar'
 

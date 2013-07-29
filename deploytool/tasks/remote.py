@@ -2,13 +2,13 @@ import os
 from datetime import datetime
 import uuid
 
-from fabric.api import *
-from fabric.colors import *
-from fabric.contrib.files import *
-from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.operations import open_shell
 from fabric.tasks import Task
+from fabric.api import env, settings, hide, abort, show
+from fabric.colors import green, red, magenta, yellow
+from fabric.contrib.files import exists, append
+from fabric.contrib.console import confirm
 
 import deploytool.utils as utils
 from deploytool.utils.commands import get_python_version, restart_supervisor_jobs
@@ -218,12 +218,12 @@ class Deployment(RemoteTask):
                 utils.commands.create_folder(folder)
 
             # before_deploy_source pause
-            if ('before_deploy_source' in pause_at):
+            if 'before_deploy_source' in pause_at:
                 print(green('\nOpening remote shell - before_deploy_source.'))
                 open_shell()
 
             # before_deploy_source hook
-            if ('before_deploy_source' in env):
+            if 'before_deploy_source' in env:
                 env.before_deploy_source(env, *args, **kwargs)
 
             print(green('\nDeploying source.'))
@@ -231,36 +231,36 @@ class Deployment(RemoteTask):
 
             if env.compass_version:
                 # before_compass_compile pause
-                if ('before_compass_compile' in pause_at):
+                if 'before_compass_compile' in pause_at:
                     print(green('\nOpening remote shell - before_compass_compile.'))
                     open_shell()
 
                 # before_compass_compile hook
-                if ('before_compass_compile' in env):
+                if 'before_compass_compile' in env:
                     env.before_deploy_source(env, *args, **kwargs)
 
                 print(green('\nCompiling compass project and upload static files.'))
                 utils.source.compass_compile(upload_path=env.source_path, tree=self.stamp, compass_version=env.compass_version)
 
             # before_create_virtualenv pause
-            if ('before_create_virtualenv' in pause_at):
+            if 'before_create_virtualenv' in pause_at:
                 print(green('\nOpening remote shell - before_create_virtualenv.'))
                 open_shell()
 
             # before_create_virtualenv hook
-            if ('before_create_virtualenv' in env):
+            if 'before_create_virtualenv' in env:
                 env.before_create_virtualenv(env, *args, **kwargs)
 
             print(green('\nCreating virtual environment.'))
             utils.instance.create_virtualenv(env.virtualenv_path)
 
             # before_pip_install pause
-            if ('before_pip_install' in pause_at):
+            if 'before_pip_install' in pause_at:
                 print(green('\nOpening remote shell - before_pip_install.'))
                 open_shell()
 
             # before_pip_install hook
-            if ('before_pip_install' in env):
+            if 'before_pip_install' in env:
                 env.before_pip_install(env, *args, **kwargs)
 
             if exists(os.path.join(env.project_path, '*.pth')):
@@ -280,12 +280,12 @@ class Deployment(RemoteTask):
             )
 
             # after_pip_install pause
-            if ('after_pip_install' in pause_at):
+            if 'after_pip_install' in pause_at:
                 print(green('\nOpening remote shell - after_pip_install.'))
                 open_shell()
 
             # after_pip_install hook
-            if ('after_pip_install' in env):
+            if 'after_pip_install' in env:
                 env.after_pip_install(env, *args, **kwargs)
 
             print(green('\nInstall gunicorn.'))
@@ -333,12 +333,12 @@ class Deployment(RemoteTask):
             with settings(show('stdout')):
 
                 # before_syncdb pause
-                if ('before_syncdb' in pause_at):
+                if 'before_syncdb' in pause_at:
                     print(green('\nOpening remote shell - before_syncdb.'))
                     open_shell()
 
                 # before_syncdb hook
-                if ('before_syncdb' in env):
+                if 'before_syncdb' in env:
                     env.before_syncdb(env, *args, **kwargs)
 
                 print(green('\nSyncing database.'))
@@ -346,12 +346,12 @@ class Deployment(RemoteTask):
                 print('')
 
                 # before_migrate pause
-                if ('before_migrate' in pause_at):
+                if 'before_migrate' in pause_at:
                     print(green('\nOpening remote shell - before_migrate.'))
                     open_shell()
 
                 # before_migrate hook
-                if ('before_migrate' in env):
+                if 'before_migrate' in env:
                     env.before_migrate(env, *args, **kwargs)
 
                 print(green('\nMigrating database.'))
@@ -377,12 +377,12 @@ class Deployment(RemoteTask):
             abort(red('Deploy failed and was rolled back.'))
 
         # before_restart pause
-        if ('before_restart' in pause_at):
+        if 'before_restart' in pause_at:
             print(green('\nOpening remote shell - before_restart.'))
             open_shell()
 
         # before_restart hook
-        if ('before_restart' in env):
+        if 'before_restart' in env:
             env.before_restart(env, *args, **kwargs)
 
         print(green('\nUpdating instance symlinks.'))
@@ -392,12 +392,12 @@ class Deployment(RemoteTask):
         restart_supervisor_jobs()
 
         # after_restart pause
-        if ('after_restart' in pause_at):
+        if 'after_restart' in pause_at:
             print(green('\nOpening remote shell - after_restart.'))
             open_shell()
 
         # after_restart hook
-        if ('after_restart' in env):
+        if 'after_restart' in env:
             env.after_restart(env, *args, **kwargs)
 
         self.log(success=True)
@@ -585,12 +585,12 @@ class Test(RemoteTask):
         pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
 
         # test pause
-        if ('test' in pause_at):
+        if 'test' in pause_at:
             print(green('\nOpening remote shell - test.'))
             open_shell()
 
         # test hook
-        if ('test' in env):
+        if 'test' in env:
             env.test(env, *args, **kwargs)
 
 

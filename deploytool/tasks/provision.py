@@ -1,10 +1,10 @@
 import os
 
-from fabric.api import *
-from fabric.colors import *
-from fabric.contrib.files import *
 from fabric.operations import require
 from fabric.tasks import Task
+from fabric.api import settings, env, sudo, hide, abort, prompt, local
+from fabric.colors import green, magenta, red, yellow
+from fabric.contrib.files import exists, append
 
 
 class ProvisioningTask(Task):
@@ -72,14 +72,14 @@ class Keys(ProvisioningTask):
             abort(red('No authorized_keys found at %s' % remote_auth_keys))
 
         print(green('\nShowing local public keys in %s:' % local_ssh_path))
-        for file in local_key_files:
-            index = local_key_files.index(file)
+        for f in local_key_files:
+            index = local_key_files.index(f)
             key_file = os.path.join(local_ssh_path, local_key_files[index])
 
             if self._is_key_authorized(remote_auth_keys, self._read_key(key_file)):
-                print('[%s] %s (already enabled)' % (red(index), file))
+                print('[%s] %s (already enabled)' % (red(index), f))
             else:
-                print('[%s] %s' % (green(index), file))
+                print('[%s] %s' % (green(index), f))
 
         print('\n[s] show all remote authorized keys')
         print('[a] enable all local keys')
@@ -91,9 +91,9 @@ class Keys(ProvisioningTask):
             print(sudo('cat %s' % remote_auth_keys) or red('[empty]'))
 
         elif selection == 'a':
-            for file in local_key_files:
+            for f in local_key_files:
                 # grab key from selection (if multiple) or default (if single)
-                key_file = os.path.join(local_ssh_path, file)
+                key_file = os.path.join(local_ssh_path, f)
                 key_to_transfer = self._read_key(key_file)
                 self._transfer_key(remote_auth_keys, key_to_transfer)
 

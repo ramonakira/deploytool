@@ -1,6 +1,6 @@
-from fabric.api import *
-from fabric.colors import *
-from fabric.contrib.files import *
+from fabric.api import run, local, get, cd, abort, sudo
+from fabric.colors import red
+from fabric.contrib.files import exists
 
 
 def get_folder_size(path):

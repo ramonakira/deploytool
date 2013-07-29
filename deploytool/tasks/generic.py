@@ -1,6 +1,6 @@
-from fabric.api import *
-from fabric.colors import *
+from fabric.colors import yellow, green
 from fabric.tasks import Task
+from fabric.api import settings, hide, local
 
 
 class ListTasks(Task):
