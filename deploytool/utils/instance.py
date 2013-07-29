@@ -5,9 +5,8 @@ from fabric.api import *
 from fabric.colors import *
 from fabric.contrib.files import *
 
-from deploytool.db import get_database_operations
-
-import commands
+from . import commands
+from . import postgresql
 
 
 def get_obsolete_instances(vhost_path):
@@ -44,27 +43,21 @@ def prune_obsolete_instances():
 
 
 def backup_database(file_path):
-    database_operations = get_database_operations(env.database_engine)
     credentials = get_database_credentials()
 
-    database_operations.backup_database(
+    postgresql.backup_database(
         credentials['database'],
         credentials['username'],
-        credentials['password'],
         file_path
     )
 
 
 def restore_database(file_path):
-    """ Drop, create, restore """
-
-    database_operations = get_database_operations(env.database_engine)
     credentials = get_database_credentials()
 
-    database_operations.restore_database(
+    postgresql.restore_database(
         credentials['database'],
         credentials['username'],
-        credentials['password'],
         file_path
     )
 
