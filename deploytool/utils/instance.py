@@ -1,5 +1,4 @@
 import os
-import json
 
 from fabric.api import *
 from fabric.colors import *
@@ -43,22 +42,22 @@ def prune_obsolete_instances():
 
 
 def backup_database(file_path):
-    credentials = get_database_credentials()
+    project_name = get_project_name()
 
     postgresql.backup_database(
-        credentials['database'],
-        credentials['username'],
-        file_path
+        database_name=project_name,
+        username=project_name,
+        file_path=file_path
     )
 
 
 def restore_database(file_path):
-    credentials = get_database_credentials()
+    project_name = get_project_name()
 
     postgresql.restore_database(
-        credentials['database'],
-        credentials['username'],
-        file_path
+        database_name=project_name,
+        username=project_name,
+        file_path=file_path
     )
 
 
@@ -128,16 +127,8 @@ def rollback(vhost_path):
             commands.rename('./previous_instance', './current_instance')
 
 
-def get_database_credentials():
-    credentials_filename = 'credentials.json'
-
-    get(
-        os.path.join(env.vhost_path, credentials_filename),
-        credentials_filename
-    )
-
-    with open(credentials_filename) as f:
-        credentials = json.load(f)
-
-    os.remove(credentials_filename)
-    return credentials
+def get_project_name():
+    """
+    Get the project name including prefix. For example 't-aurea' for the aurea test site.
+    """
+    return '%s%s' % (env.project_name_prefix, env.project_name)
