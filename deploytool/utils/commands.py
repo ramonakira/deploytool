@@ -1,4 +1,4 @@
-from fabric.api import run, local, get, cd, abort, sudo
+from fabric.api import run, local, get, cd, abort, sudo, env
 from fabric.colors import red
 from fabric.contrib.files import exists
 
@@ -14,7 +14,7 @@ def get_changed_files(local_stamp, remote_stamp, show_full_diff=False):
 
     options = ''
     if not show_full_diff:
-        options = options + '--stat'
+        options += '--stat'
 
     git_diff = 'git diff %s %s %s' % (options, remote_stamp, local_stamp, )
 
@@ -123,14 +123,16 @@ def get_python_version():
     return run(command)
 
 
-def restart_supervisor_job(config_file, job_name):
+def run_supervisor(parameters):
     """
-    Restart a job using supervisor
+    Run supervisor with these parameters.
+
+    run_supervisor('restart all')
     """
-    run('supervisorctl -c %s restart %s' % (config_file, job_name))
+    config_file = '%s/supervisor/supervisor.conf' % env.vhost_path
+
+    run('supervisorctl -c %s %s' % (config_file, parameters))
 
 
 def restart_supervisor_jobs():
-    job_name = 'all'
-    config_file = '%s/supervisor/supervisor.conf' % env.vhost_path
-    restart_supervisor_job(config_file, job_name)
+    run_supervisor('restart all')

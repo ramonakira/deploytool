@@ -11,7 +11,7 @@ from fabric.contrib.files import exists, append
 from fabric.contrib.console import confirm
 
 import deploytool.utils as utils
-from deploytool.utils.commands import get_python_version, restart_supervisor_jobs
+from deploytool.utils.commands import get_python_version, restart_supervisor_jobs, run_supervisor
 
 
 class RemoteHost(Task):
@@ -189,14 +189,16 @@ class Deployment(RemoteTask):
         super(Deployment, self).run(*args, **kwargs)
 
     def __call__(self, *args, **kwargs):
+        use_force = 'force' in args
 
         # check if deploy is possible
-        if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
-            abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
-        if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
-            abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
-        if exists(env.instance_path):
-            abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
+        if not use_force:
+            if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
+                abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
+            if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
+                abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
+            if exists(env.instance_path):
+                abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
 
         """
         parse optional 'pause' argument, can be given like this:
@@ -204,6 +206,11 @@ class Deployment(RemoteTask):
         fab staging deploy:pause=before_migrate
         """
         pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
+
+        if use_force and utils.commands.exists(env.instance_path):
+            # Use force to remove old instance
+            run_supervisor('stop all')
+            utils.commands.delete(env.instance_path)
 
         # start deploy
         try:
