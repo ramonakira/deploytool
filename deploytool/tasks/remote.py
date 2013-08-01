@@ -46,7 +46,7 @@ class RemoteHost(Task):
 
         print(green('\nInitializing fabric environment for %s.' % magenta(self.name)))
         env.update({
-            'cache_path': os.path.join(vhost_path, 'cache'),
+            'cache_path': '/opt/pip_cache',
             'current_instance_path': os.path.join(vhost_path, 'current_instance'),
             'database_name': env.project_name,
             'environment': env.environment,
