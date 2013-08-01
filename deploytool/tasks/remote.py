@@ -310,6 +310,13 @@ class Deployment(RemoteTask):
                 to_path=os.path.join(env.project_project_path, 'settings.py')
             )
 
+            site_settings_file = os.path.join(env.vhost_path, 'site_settings.py')
+            if utils.commands.exists(site_settings_file):
+                utils.commands.copy(
+                    from_path=site_settings_file,
+                    to_path=os.path.join(env.project_project_path, 'site_settings.py')
+                )
+
             print(green('\nLinking media folder.'))
             utils.commands.create_symbolic_link(
                 real_path=os.path.join(env.vhost_path, 'media'),
