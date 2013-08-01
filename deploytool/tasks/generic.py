@@ -1,6 +1,6 @@
 from fabric.colors import yellow, green
 from fabric.tasks import Task
-from fabric.api import settings, hide, local
+from fabric.api import settings, hide, local, open_shell
 
 
 class ListTasks(Task):
@@ -48,3 +48,10 @@ class ListTasks(Task):
                     current_category = task['category']
                     print(green('  \n  %s' % self.categories[current_category]))
                 print('    %(name)s\t%(description)s' % task)
+
+
+class ShellTask(Task):
+    name = 'shell'
+
+    def run(self):
+        open_shell()
