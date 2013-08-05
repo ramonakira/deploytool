@@ -28,15 +28,17 @@ class ListTasks(Task):
             for line in lines:
                 words = str.split(line)
                 _name = words[0]
-                _category = words[1]
-                _description = str.join(' ', words[3:])
 
-                if len(words) > 1 and _category in self.categories.keys():
-                    task_list.append({
-                        'name': _name,
-                        'category': _category,
-                        'description': _description,
-                    })
+                if len(words) > 1:
+                    _category = words[1]
+                    _description = str.join(' ', words[3:])
+
+                    if _category in self.categories.keys():
+                        task_list.append({
+                            'name': _name,
+                            'category': _category,
+                            'description': _description,
+                        })
 
             # display pretty custom categorized list
             print(yellow('\n+-----------------+\n| Available tasks |\n+-----------------+'))
