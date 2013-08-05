@@ -62,7 +62,6 @@ class RemoteHost(Task):
         })
 
         env.setdefault('project_path_name', env.project_name)
-        env.setdefault('database_engine', 'mysql')
 
 
 class RemoteTask(Task):
