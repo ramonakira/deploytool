@@ -322,6 +322,10 @@ class Deployment(RemoteTask):
                 symbolic_path=os.path.join(env.project_path, 'media')
             )
 
+            # after_restart hook
+            if 'before_collectstatic' in env:
+                env.before_collectstatic(env, *args, **kwargs)
+
             print(green('\nCollecting static files.'))
             utils.commands.django_manage(
                 env.virtualenv_path,
