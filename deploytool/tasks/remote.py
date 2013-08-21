@@ -189,6 +189,7 @@ class Deployment(RemoteTask):
 
     def __call__(self, *args, **kwargs):
         use_force = 'force' in args
+        skip_syncdb = 'skip_syncdb' in args
 
         # check if deploy is possible
         if not use_force:
@@ -341,57 +342,58 @@ class Deployment(RemoteTask):
             abort(red('Deploy failed and was rolled back.'))
 
         # update database
-        try:
-            print(green('\nBacking up database at start.'))
-            utils.instance.backup_database(
-                os.path.join(env.backup_path, 'db_backup_start.sql')
-            )
+        if not skip_syncdb:
+            try:
+                print(green('\nBacking up database at start.'))
+                utils.instance.backup_database(
+                    os.path.join(env.backup_path, 'db_backup_start.sql')
+                )
 
-            with settings(show('stdout')):
+                with settings(show('stdout')):
 
-                # before_syncdb pause
-                if 'before_syncdb' in pause_at:
-                    print(green('\nOpening remote shell - before_syncdb.'))
-                    open_shell()
+                    # before_syncdb pause
+                    if 'before_syncdb' in pause_at:
+                        print(green('\nOpening remote shell - before_syncdb.'))
+                        open_shell()
 
-                # before_syncdb hook
-                if 'before_syncdb' in env:
-                    env.before_syncdb(env, *args, **kwargs)
+                    # before_syncdb hook
+                    if 'before_syncdb' in env:
+                        env.before_syncdb(env, *args, **kwargs)
 
-                print(green('\nSyncing database.'))
-                utils.commands.django_manage(env.virtualenv_path, env.project_path, 'syncdb')
-                print('')
+                    print(green('\nSyncing database.'))
+                    utils.commands.django_manage(env.virtualenv_path, env.project_path, 'syncdb')
+                    print('')
 
-                # before_migrate pause
-                if 'before_migrate' in pause_at:
-                    print(green('\nOpening remote shell - before_migrate.'))
-                    open_shell()
+                    # before_migrate pause
+                    if 'before_migrate' in pause_at:
+                        print(green('\nOpening remote shell - before_migrate.'))
+                        open_shell()
 
-                # before_migrate hook
-                if 'before_migrate' in env:
-                    env.before_migrate(env, *args, **kwargs)
+                    # before_migrate hook
+                    if 'before_migrate' in env:
+                        env.before_migrate(env, *args, **kwargs)
 
-                print(green('\nMigrating database.'))
-                utils.commands.django_manage(env.virtualenv_path, env.project_path, 'migrate')
-                print('')
+                    print(green('\nMigrating database.'))
+                    utils.commands.django_manage(env.virtualenv_path, env.project_path, 'migrate')
+                    print('')
 
-            print(green('\nBacking up database at end.'))
-            utils.instance.backup_database(
-                os.path.join(env.backup_path, 'db_backup_end.sql')
-            )
-        except:
-            self.log(success=False)
+                print(green('\nBacking up database at end.'))
+                utils.instance.backup_database(
+                    os.path.join(env.backup_path, 'db_backup_end.sql')
+                )
+            except:
+                self.log(success=False)
 
-            backup_file = os.path.join(env.backup_path, 'db_backup_start.sql')
+                backup_file = os.path.join(env.backup_path, 'db_backup_start.sql')
 
-            if exists(backup_file):
-                print(yellow('\nRestoring database.'))
-                utils.instance.restore_database(backup_file)
+                if exists(backup_file):
+                    print(yellow('\nRestoring database.'))
+                    utils.instance.restore_database(backup_file)
 
-            print(green('\nRemoving this instance from filesystem.'))
-            utils.commands.delete(env.instance_path)
+                print(green('\nRemoving this instance from filesystem.'))
+                utils.commands.delete(env.instance_path)
 
-            abort(red('Deploy failed and was rolled back.'))
+                abort(red('Deploy failed and was rolled back.'))
 
         # before_restart pause
         if 'before_restart' in pause_at:
