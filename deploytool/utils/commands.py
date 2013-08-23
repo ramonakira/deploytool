@@ -136,3 +136,11 @@ def run_supervisor(parameters):
 
 def restart_supervisor_jobs():
     run_supervisor('restart all')
+
+
+def collect_static():
+    django_manage(
+        env.virtualenv_path,
+        env.project_path,
+        'collectstatic --link --noinput --verbosity=0 --traceback'
+    )
