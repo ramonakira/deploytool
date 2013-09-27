@@ -123,9 +123,9 @@ Compass compiling
 =================
 
 When you set a `compass_version` number in your settings. The deploy task will compile your compass project locally, upload the locally generated root static dir to the remote. Remember that your compass config must compile your css to the root static dir of your django project. With this setting you can ignore your generated css files in your repository.
-=======
+
 Settings
---------
+========
 
 **database_engine**: 'mysql' (default) or 'postgresql'
 
