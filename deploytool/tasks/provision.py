@@ -140,6 +140,10 @@ class Setup(ProvisioningTask):
             # add new user/password
             # Option -m makes sure a homedirectory is created.
             sudo('useradd -m %s' % project_user)
+
+            # set bash as default shell
+            sudo('usermod -s /bin/bash %s' % project_user)
+
             with(show('stdout')):
                 sudo('passwd %s' % project_user)
                 print('')
