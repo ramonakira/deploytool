@@ -318,7 +318,7 @@ class Setup(ProvisioningTask):
     def get_apache_conf_path(self):
         """
         Get the apache conf path.
-        The path is /etc/httpd/conf.d on Centos and /etc/apache2/conf.f on Ubuntu
+        The path is /etc/httpd/conf.d on Centos and /etc/apache2/conf.d on Ubuntu
 
         If no path is found, then abort.
         """
