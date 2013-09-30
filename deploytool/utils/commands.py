@@ -122,6 +122,6 @@ def get_python_version():
     Return python version as <major>.<minor> string.
     E.g. '2.6'
     """
-    command = "python -c \"import sys;print '%s.%s' % (sys.version_info.major, sys.version_info.minor)\""
+    command = "python -c \"import sys;print '%s.%s' % (sys.version_info[0], sys.version_info[1])\""
 
     return run(command)
