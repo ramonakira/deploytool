@@ -1,4 +1,4 @@
-from fabric.operations import sudo, run
+from fabric.operations import sudo, run, local
 
 
 class DatabaseOperations(object):
@@ -11,7 +11,7 @@ class DatabaseOperations(object):
 
     def create_database(self, database_name, owner, password):
         if not self.user_exists(owner):
-            self.sudo_postgres('createuser %s --createdb' % owner)
+            self.sudo_postgres('createuser %s --createdb --no-superuser --no-createrole' % owner)
 
         if not self.database_exists(database_name):
             self._create_database(database_name, owner, True)
@@ -46,3 +46,16 @@ class DatabaseOperations(object):
     def user_exists(self, user):
         output = self.execute("SELECT 1 FROM pg_roles WHERE rolname='%s'" % user)
         return output == '1'
+
+    def restore_local_database(self, backup_file, django_settings):
+        database_name = django_settings.DATABASES['default']['NAME']
+        database_user = django_settings.DATABASES['default']['USER']
+
+        result = local('dropdb --if-exists %s' % database_name)
+
+        if result.return_code != 0:
+            raise Exception('Could not remove local database')
+        else:
+            local('createdb %s --owner=%s --encoding=utf8' % (database_name, database_user))
+            local('psql -d %s -f %s' % (database_name, backup_file))
+            local('rm %s' % backup_file)

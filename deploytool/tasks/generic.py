@@ -39,7 +39,7 @@ class ListTasks(Task):
                         'description': _description,
                     })
 
-                        max_name_length = max(max_name_length, len(_name))
+                    max_name_length = max(max_name_length, len(_name))
 
             # display pretty custom categorized list
             print(yellow('\n+-----------------+\n| Available tasks |\n+-----------------+'))

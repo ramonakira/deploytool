@@ -1,5 +1,5 @@
 from fabric.colors import yellow
-from fabric.operations import prompt, sudo, run
+from fabric.operations import prompt, sudo, run, local
 
 
 class DatabaseOperations(object):
@@ -34,28 +34,29 @@ class DatabaseOperations(object):
         )
         run(command)
 
-    def restore_database(self, database_name, username, password, file_path):
+    def restore_database(self, database_name, username, password, file_path, run_command=run):
         def drop_database():
-            run(
+            run_command(
                 'mysqladmin -f --user="%s" --password="%s" drop "%s"' % (username, password, database_name)
             )
 
         def create_database():
-            run(
+            run_command(
                 'mysqladmin --user="%s" --password="%s" create "%s"' % (username, password, database_name)
             )
 
         drop_database()
         create_database()
-        self.execute_file(username, password, file_path)
+        self.execute_file(database_name, username, password, file_path, run_command=run_command)
 
-    def execute_file(self, username, password, file_path, options=''):
-        return run(
-            'mysql --batch --user=%s --password=%s %s < %s' % (
-                username,
-                password,
-                options,
-                file_path
+    def execute_file(self, database_name, username, password, file_path, options='', run_command=run):
+        return run_command(
+            'mysql --batch --user=%(user)s --password=%(password)s --database=name %(database)s %(options)s < %(file)s' % dict(
+                user=username,
+                password=password,
+                database=database_name,
+                options=options,
+                file=file_path
             )
         )
 
@@ -73,3 +74,10 @@ class DatabaseOperations(object):
             self._root_password = prompt(yellow('Password for mysql root user:'))
 
         return self._root_password
+
+    def restore_local_database(self, backup_file, django_settings):
+        database_name = django_settings.DATABASES['default']['NAME']
+        database_user = django_settings.DATABASES['default']['USER']
+        database_password = django_settings.DATABASES['default']['PASSWORD']
+
+        self.restore_database(database_name, database_user, database_password, backup_file, run_command=local)

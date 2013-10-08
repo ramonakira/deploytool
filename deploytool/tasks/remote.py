@@ -1,6 +1,6 @@
 import os
+import sys
 from datetime import datetime
-import uuid
 
 from fabric.api import *
 from fabric.colors import *
@@ -9,9 +9,12 @@ from fabric.contrib.console import confirm
 from fabric.operations import require
 from fabric.operations import open_shell
 from fabric.tasks import Task
+from fabric.contrib import django
+from deploytool.db import get_database_operations
 
 import deploytool.utils as utils
 from deploytool.utils.commands import get_python_version
+from deploytool.utils.instance import backup_and_download_database
 
 
 class RemoteHost(Task):
@@ -532,25 +535,10 @@ class Database(RemoteTask):
     name = 'database'
 
     def __call__(self, output_filename=None):
-        def generate_output_file():
-            timestamp = datetime.today().strftime('%y%m%d%H%M')
-            return '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
-
-        if not output_filename:
-            output_filename = generate_output_file()
-
-        remote_filename = os.path.join(env.backup_path, str(uuid.uuid4()))
-
-        cwd = os.getcwd()
-
-        print(green('\nCreating backup.'))
-        utils.instance.backup_database(remote_filename)
-
-        print(green('\nDownloading and removing remote backup.'))
-        utils.commands.download_file(remote_filename, output_filename)
+        output_filename = backup_and_download_database(output_filename)
 
         print(green('\nSaved backup to:'))
-        print(os.path.join(cwd, output_filename))
+        print(output_filename)
 
 
 class RestoreDatabase(RemoteTask):
@@ -585,3 +573,25 @@ class Test(RemoteTask):
         # test hook
         if ('test' in env):
             env.test(env, *args, **kwargs)
+
+
+class RestoreRemoteDatabase(RemoteTask):
+    """ REMO - Restore remote database """
+    name = 'restore_remote_database'
+
+    def __call__(self, *args, **kwargs):
+        settings = self.import_django_settings()
+
+        local_backup_file = backup_and_download_database()
+
+        print('Restoring database on local machine')
+        database_operations = get_database_operations(env.database_engine)
+        database_operations.restore_local_database(local_backup_file, settings)
+
+    def import_django_settings(self):
+        sys.path.append(os.getcwd())
+
+        django.project(env.project_path_name)
+        from django.conf import settings
+
+        return settings
