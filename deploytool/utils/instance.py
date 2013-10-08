@@ -1,3 +1,5 @@
+from datetime import datetime
+import uuid
 import os
 
 from fabric.api import run, cd, env, abort
@@ -59,6 +61,25 @@ def restore_database(file_path):
         username=project_name,
         file_path=file_path
     )
+
+
+def backup_and_download_database(local_output_filename=''):
+    def generate_output_file():
+        timestamp = datetime.today().strftime('%y%m%d%H%M')
+        return '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
+
+    if not local_output_filename:
+        local_output_filename = generate_output_file()
+
+    remote_filename = os.path.join(env.backup_path, str(uuid.uuid4()))
+
+    print(green('\nCreating backup.'))
+    backup_database(remote_filename)
+
+    print(green('\nDownloading and removing remote backup.'))
+    commands.download_file(remote_filename, local_output_filename)
+
+    return os.path.join(os.getcwd(), local_output_filename)
 
 
 def create_virtualenv(virtualenv_path):

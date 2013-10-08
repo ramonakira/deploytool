@@ -1,17 +1,18 @@
 import os
+import sys
 from datetime import datetime
-import uuid
 
-from fabric.operations import require
-from fabric.operations import open_shell
+from fabric.operations import require, local, open_shell
 from fabric.tasks import Task
 from fabric.api import env, settings, hide, abort, show
 from fabric.colors import green, red, magenta, yellow
 from fabric.contrib.files import exists, append
 from fabric.contrib.console import confirm
+from fabric.contrib import django
 
 import deploytool.utils as utils
 from deploytool.utils.commands import get_python_version, restart_supervisor_jobs, run_supervisor
+from deploytool.utils.instance import backup_and_download_database
 
 
 class RemoteHost(Task):
@@ -552,25 +553,10 @@ class Database(RemoteTask):
     name = 'database'
 
     def __call__(self, output_filename=None):
-        def generate_output_file():
-            timestamp = datetime.today().strftime('%y%m%d%H%M')
-            return '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
-
-        if not output_filename:
-            output_filename = generate_output_file()
-
-        remote_filename = os.path.join(env.backup_path, str(uuid.uuid4()))
-
-        cwd = os.getcwd()
-
-        print(green('\nCreating backup.'))
-        utils.instance.backup_database(remote_filename)
-
-        print(green('\nDownloading and removing remote backup.'))
-        utils.commands.download_file(remote_filename, output_filename)
+        output_filename = backup_and_download_database(output_filename)
 
         print(green('\nSaved backup to:'))
-        print(os.path.join(cwd, output_filename))
+        print(output_filename)
 
 
 class RestoreDatabase(RemoteTask):
@@ -626,3 +612,41 @@ class Restart(RemoteTask):
 
         if 'after_restart' in env:
             env.after_restart(env, *args, **kwargs)
+
+
+class RestoreRemoteDatabase(RemoteTask):
+    """ REMO - Restore remote database """
+    name = 'restore_remote_database'
+
+    def __call__(self, *args, **kwargs):
+        settings = self.import_django_settings()
+
+        self.check_database_engine(settings)
+        local_backup_file = backup_and_download_database()
+
+        print('Restoring database on local machine')
+        database_name = settings.DATABASES['default']['NAME']
+        database_user = settings.DATABASES['default']['USER']
+
+        result = local('dropdb --if-exists %s' % database_name)
+
+        if result.return_code != 0:
+            print 'Could not remove local database'
+        else:
+            local('createdb %s --owner=%s --encoding=utf8' % (database_name, database_user))
+            local('psql -d %s -f %s' % (database_name, local_backup_file))
+            local('rm %s' % local_backup_file)
+
+    def import_django_settings(self):
+        sys.path.append(os.getcwd())
+
+        django.project(env.project_path_name)
+        from django.conf import settings
+
+        return settings
+
+    def check_database_engine(self, settings):
+        engine = settings.DATABASES['default']['ENGINE']
+
+        if engine != 'django.db.backends.postgresql_psycopg2':
+            raise Exception('Only supports postgres database')
