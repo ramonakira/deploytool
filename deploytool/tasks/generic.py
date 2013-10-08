@@ -23,6 +23,7 @@ class ListTasks(Task):
             # filter for indented tasks and split to list
             lines = [t for t in output.split('\n') if t != '' and t[0].isspace()]
             task_list = []
+            max_name_length = 0
 
             # create custom task list from fabric list output
             for line in lines:
@@ -38,6 +39,8 @@ class ListTasks(Task):
                         'description': _description,
                     })
 
+                        max_name_length = max(max_name_length, len(_name))
+
             # display pretty custom categorized list
             print(yellow('\n+-----------------+\n| Available tasks |\n+-----------------+'))
             task_list.sort()
@@ -47,7 +50,8 @@ class ListTasks(Task):
                 if task['category'] != current_category:
                     current_category = task['category']
                     print(green('  \n  %s' % self.categories[current_category]))
-                print('    %(name)s\t%(description)s' % task)
+                task['spaces'] = ' ' * (max_name_length - len(task['name']))
+                print('    %(name)s%(spaces)s\t%(description)s' % task)
 
 
 class ShellTask(Task):
