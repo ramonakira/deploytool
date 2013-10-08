@@ -397,6 +397,7 @@ class Deployment(RemoteTask):
 
 
 class RemoveOldInstances(RemoteTask):
+    """ REMO - Remove old instances """
     name = 'remove_old_instances'
 
     def __call__(self, *args, **kwargs):
@@ -553,6 +554,7 @@ class Database(RemoteTask):
 
 
 class RestoreDatabase(RemoteTask):
+    """ REMO - Restore database """
     name = 'restore_database'
 
     def __call__(self):
