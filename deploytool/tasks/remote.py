@@ -105,7 +105,12 @@ class RemoteTask(Task):
         """ Hide output, update fabric env, run task """
 
         # hide fabric output
-        with settings(hide('running', 'stdout'), warn_only=True):
+        if 'debug' in args:
+            hidden_groups = ('running',)
+        else:
+            hidden_groups = ('running', 'stdout')
+
+        with settings(hide(*hidden_groups), warn_only=True):
 
             # check if HOST task was run before this task
             if not hasattr(env, 'current_instance_path'):
