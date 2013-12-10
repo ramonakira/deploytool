@@ -1,8 +1,9 @@
 import os
 import sys
 from datetime import datetime
+import uuid
 
-from fabric.operations import require, local, open_shell
+from fabric.operations import require, local, open_shell, put, sudo, run
 from fabric.tasks import Task
 from fabric.api import env, settings, hide, abort, show
 from fabric.colors import green, red, magenta, yellow
@@ -196,6 +197,7 @@ class Deployment(RemoteTask):
     def __call__(self, *args, **kwargs):
         use_force = 'force' in args
         skip_syncdb = 'skip_syncdb' in args
+        use_wheel = 'use_wheel' in args
 
         # check if deploy is possible
         if not use_force:
@@ -289,7 +291,8 @@ class Deployment(RemoteTask):
                 env.virtualenv_path,
                 env.project_path,
                 env.cache_path,
-                env.log_path
+                env.log_path,
+                use_wheel=use_wheel
             )
 
             # after_pip_install pause
@@ -307,7 +310,7 @@ class Deployment(RemoteTask):
                 'gunicorn',
                 '17.5',
                 env.cache_path,
-                env.log_path
+                env.log_path,
             )
 
             print(green('\nCopying settings.py.'))
@@ -655,3 +658,28 @@ class RestoreRemoteDatabase(RemoteTask):
 
         if engine != 'django.db.backends.postgresql_psycopg2':
             raise Exception('Only supports postgres database')
+
+
+class InstallWheels(Task):
+    name = 'install_wheels'
+
+    def run(self):
+        website_user = env.user
+        env.user = 'leukeleu'
+
+        # try sudo root now
+        sudo('ls')
+
+        temp_wheels_dir = "/tmp/%s" % uuid.uuid4().hex
+        try:
+            requirements_file = os.path.join(temp_wheels_dir, 'requirements.txt')
+
+            # Build the wheel as website user
+            with settings(sudo=website_user):
+                sudo('mkdir %s' % temp_wheels_dir, user=website_user)
+                put('requirements.txt', requirements_file, use_sudo=True)
+                sudo("pip wheel --wheel-dir=%s -r %s" % (temp_wheels_dir, requirements_file), user=website_user)
+
+            sudo('cp %s/*.whl /opt/wheels/' % temp_wheels_dir)
+        finally:
+            sudo("rm -rf %s" % temp_wheels_dir)

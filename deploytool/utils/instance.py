@@ -85,10 +85,10 @@ def backup_and_download_database(local_output_filename=''):
 def create_virtualenv(virtualenv_path):
     """ Creates virtual environment for instance """
 
-    run('virtualenv %s --no-site-packages' % virtualenv_path)
+    run('virtualenv %s --no-site-packages --setuptools' % virtualenv_path)
 
 
-def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log_path):
+def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log_path, use_wheel=False):
     """ Requires availability of Pip (0.8.1 or later) on remote system """
 
     requirements_file = os.path.join(requirements_path, 'requirements.txt')
@@ -97,11 +97,31 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
     if not exists(requirements_file) or not exists(virtualenv_path):
         abort(red('Could not install packages. Virtual environment or requirements.txt not found.'))
 
-    args = (virtualenv_path, requirements_file, cache_path, log_file)
-    run('%s/bin/pip install -r %s --download-cache=%s --use-mirrors --quiet --log=%s' % args)
+    arguments = [
+        '%s/bin/pip' % virtualenv_path,
+        'install',
+        '-r',
+        requirements_file,
+        '--quiet',
+        '--log=%s' % log_file,
+    ]
+
+    if use_wheel:
+        arguments += [
+            '--use-wheel',
+            '--find-links=/opt/wheels',
+            '--no-index'
+        ]
+    else:
+        arguments += [
+            '--download-cache=%s' % cache_path,
+            '--use-mirrors'
+        ]
+
+    run(' '.join(arguments))
 
 
-def pip_install_package(virtualenv_path, package, version, cache_path, log_path):
+def pip_install_package(virtualenv_path, package, version, cache_path, log_path, use_wheel=False):
     """ Install this python package using pip """
 
     if not exists(virtualenv_path):
@@ -110,15 +130,27 @@ def pip_install_package(virtualenv_path, package, version, cache_path, log_path)
     # todo: add run_pip function?
     log_file = os.path.join(log_path, 'pip.log')
 
-    run(
-        '%(virtualenv_path)s/bin/pip install %(package)s==%(version)s --download-cache=%(cache_path)s --use-mirrors --quiet --log=%(log_file)s' % dict(
-            virtualenv_path=virtualenv_path,
-            package=package,
-            version=version,
-            cache_path=cache_path,
-            log_file=log_file,
-        )
-    )
+    arguments = [
+        '%s/bin/pip' % virtualenv_path,
+        'install',
+        '%s==%s' % (package, version),
+        '--quiet',
+        '--log=%s' % log_file,
+    ]
+
+    if use_wheel:
+        arguments += [
+            '--use-wheel',
+            '--find-links=/opt/wheels',
+            '--no-index'
+        ]
+    else:
+        arguments += [
+            '--download-cache=%s' % cache_path,
+            '--use-mirrors'
+        ]
+
+    run(' '.join(arguments))
 
 
 def get_instance_stamp(instance_path):
