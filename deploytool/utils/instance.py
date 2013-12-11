@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 import os
+import re
 
 from fabric.api import run, cd, env, abort
 from fabric.colors import green, red
@@ -10,36 +11,65 @@ from . import commands
 from . import postgresql
 
 
-def get_obsolete_instances(vhost_path):
-    """ Return obsolete instances from remote server """
+def get_unused_instances(vhost_path):
+    """
+    Return instance directories that are not the current or the previous instance.
+    The list is sorted reversed by datetime
+    """
+    current_direcory_names = [
+        get_instance_stamp(os.path.join(vhost_path, 'current_instance')),
+        get_instance_stamp(os.path.join(vhost_path, 'previous_instance'))
+    ]
+    re_instance = re.compile(r'[a-z0-9]{40}(_\d+)?')
+
+    def is_valid_path(directory):
+        directory_name = os.path.basename(os.path.dirname(directory))
+
+        if directory_name in current_direcory_names:
+            return False
+        else:
+            return bool(
+                re_instance.match(directory_name)
+            )
 
     try:
-        with cd(vhost_path):
+        # - t: sort by modification time, newest first
+        directories = get_directories(vhost_path, 't')
 
-            # list directories, display name only, sort by ctime, filter by git-commit-tag-length
-            command = 'ls -1tcd */ | awk \'{ if(length($1) == 41) { print $1 }}\''
-
-            # split into list and return everything but the 3 newest instances
-            return run(command).split()[3:]
+        return [
+            directory for directory in directories if is_valid_path(directory)
+        ]
     except:
         return []
+
+
+def ls(path, options=''):
+    # run ls with '-1' option wich results in 1 file per line in output
+    output = run('ls -1%s %s' % (options, path))
+
+    files = output.split("\n")
+
+    return [f.strip() for f in files]
+
+
+def get_directories(path, options=''):
+    # - d: filter directories; must add */ to path for this
+    return ls(
+        os.path.join(path, '*/'),
+        'd%s' % options
+    )
 
 
 def prune_obsolete_instances(vhost_path):
     """ Find old instances and remove them to free up space """
 
     removed_instances = []
+    unused_instances = get_unused_instances(vhost_path)
 
-    current_instance_path = os.path.join(vhost_path, 'current_instance')
-    previous_instance_path = os.path.join(vhost_path, 'previous_instance')
-
-    for instance in get_obsolete_instances(vhost_path):
-        is_current = bool(get_instance_stamp(current_instance_path) == instance)
-        is_previous = bool(get_instance_stamp(previous_instance_path) == instance)
-
-        if not (is_current or is_previous):
-            commands.delete(os.path.join(vhost_path, instance))
-            removed_instances.append(instance)
+    # Delete all instances except first 3
+    for instance in unused_instances[3:]:
+        commands.delete(os.path.join(vhost_path, instance))
+        removed_instances.append(instance)
 
     if removed_instances:
         print(green('\nThese old instances were removed from remote filesystem:'))
