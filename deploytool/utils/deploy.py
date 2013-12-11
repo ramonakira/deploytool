@@ -311,6 +311,7 @@ class WebsiteDeployment(object):
         instance.set_current_instance(self.vhost_path, self.instance_path)
 
     def restart_supervisor(self):
+        print(green('\nRestarting Website.'))
         commands.restart_supervisor_jobs(self.vhost_path)
 
     def handle_after_restart(self):
