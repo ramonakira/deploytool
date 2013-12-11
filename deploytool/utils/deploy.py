@@ -44,7 +44,7 @@ class WebsiteDeployment(object):
         self.task_kwargs = task_kwargs
 
         self.log_path = os.path.join(vhost_path, 'log')
-        self.instance_path = os.path.join(vhost_path, stamp)
+        self.instance_path = self.get_instance_path()
         self.source_path = os.path.join(self.instance_path, '%s%s' % (project_name_prefix, project_name))
         self.virtualenv_path = os.path.join(self.instance_path, 'env')
         self.project_settings_path = os.path.join(self.source_path, project_settings_directory)
@@ -324,3 +324,18 @@ class WebsiteDeployment(object):
 
     def log_success(self):
         instance.log(success=True, task_name='deploy', stamp=self.stamp, log_path=self.log_path)
+
+    def get_instance_path(self):
+        instance_path = os.path.join(self.vhost_path, self.stamp)
+
+        if not exists(instance_path):
+            return instance_path
+        else:
+            index = 1
+            while True:
+                candidate_path = '%s_%d' % (instance_path, index)
+
+                if not exists(candidate_path):
+                    return candidate_path
+
+                index += 1

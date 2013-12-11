@@ -185,6 +185,7 @@ class Deployment(RemoteTask):
 
             # deployed commit is not in your local repository
             elif remote_stamp and not utils.commands.remote_stamp_in_local_repo(remote_stamp):
+                # todo: handle duplicate deployments
                 print(red('\nWarning: deployed commit is not in your local repository.'))
 
             # show changed files with `diff` command
@@ -207,20 +208,14 @@ class Deployment(RemoteTask):
         skip_syncdb = 'skip_syncdb' in args
         use_wheel = 'use_wheel' in args
 
-        # Check if stamp must be changed
-        instance_stamp = utils.instance.get_instance_stamp(env.current_instance_path)
-
-        if self.stamp == instance_stamp and use_force:
-            # todo:
-            pass
-
         # check if deploy is possible
-        if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
-            abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
-        if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
-            abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
-        if exists(env.instance_path):
-            abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
+        if not use_force:
+            if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
+                abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
+            if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
+                abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
+            if exists(env.instance_path):
+                abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
 
         # Parse optional 'pause' argument, can be given like this:
         # fab staging deploy:pause=before_migrate
@@ -230,7 +225,7 @@ class Deployment(RemoteTask):
             vhost_path=env.vhost_path,
             project_name=env.project_name,
             project_name_prefix=env.project_name_prefix,
-            project_settings_directory=env.project_project_path,
+            project_settings_directory=env.project_path_name,
             stamp=self.stamp,
             pause_at=pause_at,
             use_wheel=use_wheel,
