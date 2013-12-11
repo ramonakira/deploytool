@@ -123,24 +123,24 @@ def get_python_version():
     return run(command)
 
 
-def run_supervisor(parameters):
+def run_supervisor(vhost_path, parameters):
     """
     Run supervisor with these parameters.
 
     run_supervisor('restart all')
     """
-    config_file = '%s/supervisor/supervisor.conf' % env.vhost_path
+    config_file = '%s/supervisor/supervisor.conf' % vhost_path
 
     run('supervisorctl -c %s %s' % (config_file, parameters))
 
 
-def restart_supervisor_jobs():
-    run_supervisor('restart all')
+def restart_supervisor_jobs(vhost_path):
+    run_supervisor(vhost_path, 'restart all')
 
 
-def collect_static():
+def collect_static(virtualenv_path, source_path):
     django_manage(
-        env.virtualenv_path,
-        env.project_path,
+        virtualenv_path,
+        source_path,
         'collectstatic --link --noinput --verbosity=0 --traceback'
     )

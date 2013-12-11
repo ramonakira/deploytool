@@ -4,7 +4,7 @@ import os
 
 from fabric.api import run, cd, env, abort
 from fabric.colors import green, red
-from fabric.contrib.files import exists
+from fabric.contrib.files import exists, append
 
 from . import commands
 from . import postgresql
@@ -25,17 +25,20 @@ def get_obsolete_instances(vhost_path):
         return []
 
 
-def prune_obsolete_instances():
+def prune_obsolete_instances(vhost_path):
     """ Find old instances and remove them to free up space """
 
     removed_instances = []
 
-    for instance in get_obsolete_instances(env.vhost_path):
-        is_current = bool(get_instance_stamp(env.current_instance_path) == instance)
-        is_previous = bool(get_instance_stamp(env.previous_instance_path) == instance)
+    current_instance_path = os.path.join(vhost_path, 'current_instance')
+    previous_instance_path = os.path.join(vhost_path, 'previous_instance')
+
+    for instance in get_obsolete_instances(vhost_path):
+        is_current = bool(get_instance_stamp(current_instance_path) == instance)
+        is_previous = bool(get_instance_stamp(previous_instance_path) == instance)
 
         if not (is_current or is_previous):
-            commands.delete(os.path.join(env.vhost_path, instance))
+            commands.delete(os.path.join(vhost_path, instance))
             removed_instances.append(instance)
 
     if removed_instances:
@@ -185,3 +188,23 @@ def get_project_name():
     Get the project name including prefix. For example 't-aurea' for the aurea test site.
     """
     return '%s%s' % (env.project_name_prefix, env.project_name)
+
+
+def log(success, task_name, stamp, log_path):
+    """ Single line task logging to ./log/fabric.log """
+
+    if success is True:
+        result = 'success'
+    else:
+        result = 'failed'
+
+    message = '[%s] %s %s in %s by %s for %s' % (
+        datetime.today().strftime('%Y-%m-%d %H:%M'),
+        task_name,
+        result,
+        env.environment,
+        env.local_user,
+        stamp
+    )
+
+    append(os.path.join(log_path, 'fabric.log'), message)

@@ -1,19 +1,19 @@
 import os
 import sys
-from datetime import datetime
 import uuid
 
 from fabric.operations import require, local, open_shell, put, sudo
 from fabric.tasks import Task
-from fabric.api import env, settings, hide, abort, show
+from fabric.api import env, settings, hide, abort
 from fabric.colors import green, red, magenta, yellow
-from fabric.contrib.files import exists, append
+from fabric.contrib.files import exists
 from fabric.contrib.console import confirm
 from fabric.contrib import django
 
 import deploytool.utils as utils
-from deploytool.utils.commands import get_python_version, restart_supervisor_jobs, run_supervisor
+from deploytool.utils.commands import restart_supervisor_jobs
 from deploytool.utils.instance import backup_and_download_database
+from deploytool.utils.deploy import WebsiteDeployment
 
 
 class RemoteHost(Task):
@@ -28,6 +28,7 @@ class RemoteHost(Task):
     ]
 
     def __init__(self, *args, **kwargs):
+        super(RemoteHost, self).__init__(*args, **kwargs)
 
         # use environment as task name
         self.name = kwargs['settings']['environment']
@@ -47,6 +48,20 @@ class RemoteHost(Task):
         vhost_path = os.path.join(env.vhosts_path, vhost_folder)
 
         print(green('\nInitializing fabric environment for %s.' % magenta(self.name)))
+
+        # project_name:           example
+        # project_name_prefix:    t-
+        # user:                   t-example
+        # project_path_name:      example
+
+        # vhosts_path:            /var/www/vhosts/
+        # vhost_path:             /var/www/vhosts/t-example/
+        # current_instance_path:  /var/www/vhosts/t-example/current_instance/
+        # previous_instance_path: /var/www/vhosts/t-example/previous_instance/
+        # log_path:               /var/www/vhosts/t-example/log/
+        # media_path:             /var/www/vhosts/t-example/media/
+        # supervisor_path:        /var/www/vhosts/t-example/supervisor
+
         env.update({
             'cache_path': '/opt/pip_cache',
             'current_instance_path': os.path.join(vhost_path, 'current_instance'),
@@ -57,7 +72,6 @@ class RemoteHost(Task):
             'media_path': os.path.join(vhost_path, 'media'),
             'previous_instance_path': os.path.join(vhost_path, 'previous_instance'),
             'vhost_path': vhost_path,
-            'scripts_path': os.path.join(vhost_path, 'scripts'),
             'user': '%s%s' % (env.project_name_prefix, env.project_name),
             'compass_version': env.compass_version if 'compass_version' in env else None,
             'supervisor_path': os.path.join(vhost_path, 'supervisor'),
@@ -84,23 +98,7 @@ class RemoteTask(Task):
         raise NotImplementedError
 
     def log(self, success):
-        """ Single line task logging to ./log/fabric.log """
-
-        if success is True:
-            result = 'success'
-        else:
-            result = 'failed'
-
-        message = '[%s] %s %s in %s by %s for %s' % (
-            datetime.today().strftime('%Y-%m-%d %H:%M'),
-            self.name,
-            result,
-            env.environment,
-            env.local_user,
-            self.stamp
-        )
-
-        append(os.path.join(env.log_path, 'fabric.log'), message)
+        utils.instance.log(success, task_name=self.name, stamp=self.stamp)
 
     def run(self, *args, **kwargs):
         """ Hide output, update fabric env, run task """
@@ -132,6 +130,16 @@ class RemoteTask(Task):
             # update fabric environment for instance settings
             instance_path = os.path.join(env.vhost_path, self.stamp)
             full_project_name = '%s%s' % (env.project_name_prefix, env.project_name)
+
+            # instance_stamp:       [sha1]
+
+            # instance_path:        /var/www/vhosts/t-example/[sha1]/
+            # backup_path:          /var/www/vhosts/t-example/[sha1]/backup/
+            # source_path:          /var/www/vhosts/t-example/[sha1]/t-example/
+            # project_path:         /var/www/vhosts/t-example/[sha1]/t-example/
+            # project_project_path: /var/www/vhosts/t-example/[sha1]/t-example/example/
+            # virtualenv_path:      /var/www/vhosts/t-example/[sha1]/env/
+
             env.update({
                 'backup_path': os.path.join(instance_path, 'backup'),
                 'instance_stamp': self.stamp,
@@ -199,227 +207,38 @@ class Deployment(RemoteTask):
         skip_syncdb = 'skip_syncdb' in args
         use_wheel = 'use_wheel' in args
 
+        # Check if stamp must be changed
+        instance_stamp = utils.instance.get_instance_stamp(env.current_instance_path)
+
+        if self.stamp == instance_stamp and use_force:
+            # todo:
+            pass
+
         # check if deploy is possible
-        if not use_force:
-            if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
-                abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
-            if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
-                abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
-            if exists(env.instance_path):
-                abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
+        if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
+            abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
+        if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
+            abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
+        if exists(env.instance_path):
+            abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
 
         # Parse optional 'pause' argument, can be given like this:
         # fab staging deploy:pause=before_migrate
         pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
 
-        if use_force and utils.commands.exists(env.instance_path):
-            # Use force to remove old instance
-            run_supervisor('stop all')
-            utils.commands.delete(env.instance_path)
-
-        # start deploy
-        try:
-            print(green('\nCreating folders.'))
-            folders_to_create = [
-                env.instance_path,
-                env.backup_path,
-                env.source_path,
-                env.virtualenv_path,
-            ]
-            for folder in folders_to_create:
-                utils.commands.create_folder(folder)
-
-            # before_deploy_source pause
-            if 'before_deploy_source' in pause_at:
-                print(green('\nOpening remote shell - before_deploy_source.'))
-                open_shell()
-
-            # before_deploy_source hook
-            if 'before_deploy_source' in env:
-                env.before_deploy_source(env, *args, **kwargs)
-
-            print(green('\nDeploying source.'))
-            utils.source.transfer_source(upload_path=env.source_path, tree=self.stamp)
-
-            if env.compass_version:
-                # before_compass_compile pause
-                if 'before_compass_compile' in pause_at:
-                    print(green('\nOpening remote shell - before_compass_compile.'))
-                    open_shell()
-
-                # before_compass_compile hook
-                if 'before_compass_compile' in env:
-                    env.before_deploy_source(env, *args, **kwargs)
-
-                print(green('\nCompiling compass project and upload static files.'))
-                utils.source.compass_compile(upload_path=env.source_path, tree=self.stamp, compass_version=env.compass_version)
-
-            # before_create_virtualenv pause
-            if 'before_create_virtualenv' in pause_at:
-                print(green('\nOpening remote shell - before_create_virtualenv.'))
-                open_shell()
-
-            # before_create_virtualenv hook
-            if 'before_create_virtualenv' in env:
-                env.before_create_virtualenv(env, *args, **kwargs)
-
-            print(green('\nCreating virtual environment.'))
-            utils.instance.create_virtualenv(env.virtualenv_path)
-
-            # before_pip_install pause
-            if 'before_pip_install' in pause_at:
-                print(green('\nOpening remote shell - before_pip_install.'))
-                open_shell()
-
-            # before_pip_install hook
-            if 'before_pip_install' in env:
-                env.before_pip_install(env, *args, **kwargs)
-
-            if exists(os.path.join(env.project_path, '*.pth')):
-                print(green('\nCopying .pth files.'))
-                utils.commands.copy(
-                    from_path=os.path.join(env.project_path, '*.pth'),
-                    to_path='%s/lib/python%s/site-packages' % (env.virtualenv_path, get_python_version())
-                )
-
-            print(green('\nPip installing requirements.'))
-            # TODO: use requirements_path instead of project_path?
-            utils.instance.pip_install_requirements(
-                env.virtualenv_path,
-                env.project_path,
-                env.cache_path,
-                env.log_path,
-                use_wheel=use_wheel
-            )
-
-            # after_pip_install pause
-            if 'after_pip_install' in pause_at:
-                print(green('\nOpening remote shell - after_pip_install.'))
-                open_shell()
-
-            # after_pip_install hook
-            if 'after_pip_install' in env:
-                env.after_pip_install(env, *args, **kwargs)
-
-            print(green('\nInstall gunicorn.'))
-            utils.instance.pip_install_package(
-                env.virtualenv_path,
-                'gunicorn',
-                '17.5',
-                env.cache_path,
-                env.log_path,
-            )
-
-            print(green('\nCopying settings.py.'))
-            utils.commands.copy(
-                from_path=os.path.join(env.vhost_path, 'settings.py'),
-                to_path=os.path.join(env.project_project_path, 'settings.py')
-            )
-
-            site_settings_file = os.path.join(env.vhost_path, 'site_settings.py')
-            if utils.commands.exists(site_settings_file):
-                utils.commands.copy(
-                    from_path=site_settings_file,
-                    to_path=os.path.join(env.project_project_path, 'site_settings.py')
-                )
-
-            print(green('\nLinking media folder.'))
-            utils.commands.create_symbolic_link(
-                real_path=os.path.join(env.vhost_path, 'media'),
-                symbolic_path=os.path.join(env.project_path, 'media')
-            )
-
-            print(green('\nCollecting static files.'))
-            utils.commands.collect_static()
-        except:
-            self.log(success=False)
-
-            print(yellow('\nRemoving this instance from filesystem.'))
-            utils.commands.delete(env.instance_path)
-
-            abort(red('Deploy failed and was rolled back.'))
-
-        # update database
-        if not skip_syncdb:
-            try:
-                print(green('\nBacking up database at start.'))
-                utils.instance.backup_database(
-                    os.path.join(env.backup_path, 'db_backup_start.sql')
-                )
-
-                with settings(show('stdout')):
-
-                    # before_syncdb pause
-                    if 'before_syncdb' in pause_at:
-                        print(green('\nOpening remote shell - before_syncdb.'))
-                        open_shell()
-
-                    # before_syncdb hook
-                    if 'before_syncdb' in env:
-                        env.before_syncdb(env, *args, **kwargs)
-
-                    print(green('\nSyncing database.'))
-                    utils.commands.django_manage(env.virtualenv_path, env.project_path, 'syncdb')
-                    print('')
-
-                    # before_migrate pause
-                    if 'before_migrate' in pause_at:
-                        print(green('\nOpening remote shell - before_migrate.'))
-                        open_shell()
-
-                    # before_migrate hook
-                    if 'before_migrate' in env:
-                        env.before_migrate(env, *args, **kwargs)
-
-                    print(green('\nMigrating database.'))
-                    utils.commands.django_manage(env.virtualenv_path, env.project_path, 'migrate')
-                    print('')
-
-                print(green('\nBacking up database at end.'))
-                utils.instance.backup_database(
-                    os.path.join(env.backup_path, 'db_backup_end.sql')
-                )
-            except:
-                self.log(success=False)
-
-                backup_file = os.path.join(env.backup_path, 'db_backup_start.sql')
-
-                if exists(backup_file):
-                    print(yellow('\nRestoring database.'))
-                    utils.instance.restore_database(backup_file)
-
-                print(green('\nRemoving this instance from filesystem.'))
-                utils.commands.delete(env.instance_path)
-
-                abort(red('Deploy failed and was rolled back.'))
-
-        # before_restart pause
-        if 'before_restart' in pause_at:
-            print(green('\nOpening remote shell - before_restart.'))
-            open_shell()
-
-        # before_restart hook
-        if 'before_restart' in env:
-            env.before_restart(env, *args, **kwargs)
-
-        print(green('\nUpdating instance symlinks.'))
-        utils.instance.set_current_instance(env.vhost_path, env.instance_path)
-
-        print(green('\nRestarting Website.'))
-        restart_supervisor_jobs()
-
-        # after_restart pause
-        if 'after_restart' in pause_at:
-            print(green('\nOpening remote shell - after_restart.'))
-            open_shell()
-
-        # after_restart hook
-        if 'after_restart' in env:
-            env.after_restart(env, *args, **kwargs)
-
-        self.log(success=True)
-
-        utils.instance.prune_obsolete_instances()
+        website = WebsiteDeployment(
+            vhost_path=env.vhost_path,
+            project_name=env.project_name,
+            project_name_prefix=env.project_name_prefix,
+            project_settings_directory=env.project_project_path,
+            stamp=self.stamp,
+            pause_at=pause_at,
+            use_wheel=use_wheel,
+            skip_syncdb=skip_syncdb,
+            task_args=args,
+            task_kwargs=kwargs,
+        )
+        website.deploy()
 
 
 class RemoveOldInstances(RemoteTask):
@@ -427,7 +246,7 @@ class RemoveOldInstances(RemoteTask):
     name = 'remove_old_instances'
 
     def __call__(self, *args, **kwargs):
-        utils.instance.prune_obsolete_instances()
+        utils.instance.prune_obsolete_instances(env.vhost_path)
 
 
 class Rollback(RemoteTask):
@@ -613,7 +432,7 @@ class Restart(RemoteTask):
     def __call__(self, *args, **kwargs):
         print(green('\nRestarting Website.'))
 
-        restart_supervisor_jobs()
+        restart_supervisor_jobs(env.vhost_path)
 
         if 'after_restart' in env:
             env.after_restart(env, *args, **kwargs)
