@@ -185,7 +185,6 @@ class Deployment(RemoteTask):
 
             # deployed commit is not in your local repository
             elif remote_stamp and not utils.commands.remote_stamp_in_local_repo(remote_stamp):
-                # todo: handle duplicate deployments
                 print(red('\nWarning: deployed commit is not in your local repository.'))
 
             # show changed files with `diff` command
