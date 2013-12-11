@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 import uuid
 
-from fabric.operations import require, local, open_shell, put, sudo, run
+from fabric.operations import require, local, open_shell, put, sudo
 from fabric.tasks import Task
 from fabric.api import env, settings, hide, abort, show
 from fabric.colors import green, red, magenta, yellow
@@ -208,11 +208,8 @@ class Deployment(RemoteTask):
             if exists(env.instance_path):
                 abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
 
-        """
-        parse optional 'pause' argument, can be given like this:
-
-        fab staging deploy:pause=before_migrate
-        """
+        # Parse optional 'pause' argument, can be given like this:
+        # fab staging deploy:pause=before_migrate
         pause_at = kwargs['pause'].split(',') if ('pause' in kwargs) else []
 
         if use_force and utils.commands.exists(env.instance_path):
