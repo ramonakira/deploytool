@@ -190,16 +190,20 @@ def get_instance_stamp(symbolic_link):
     """ Reads symlinked (current/previous) instance and returns its sliced off stamp (git commit SHA1)  """
 
     instance_path = commands.read_link(symbolic_link)
-    directory_name = os.path.basename(instance_path)
 
-    # The directory name can be a stamp or [sha1]_[index]
+    if not instance_path:
+        return ''
+    else:
+        directory_name = os.path.basename(instance_path)
 
-    match = re.match(r'([a-z0-9]{40})(_\d+)?', directory_name)
+        # The directory name can be a stamp or [sha1]_[index]
 
-    if not match:
-        raise Exception('Could not get stamp from directory %s and symbolic link %s' % (instance_path, symbolic_link))
+        match = re.match(r'([a-z0-9]{40})(_\d+)?', directory_name)
 
-    return match.groups()[0]
+        if not match:
+            raise Exception('Could not get stamp from directory %s and symbolic link %s' % (instance_path, symbolic_link))
+
+        return match.groups()[0]
 
 
 def set_current_instance(vhost_path, instance_path):
