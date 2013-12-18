@@ -104,7 +104,7 @@ def backup_and_download_database(local_output_filename=''):
     if not local_output_filename:
         local_output_filename = generate_output_file()
 
-    remote_filename = os.path.join(env.backup_path, str(uuid.uuid4()))
+    remote_filename = os.path.join('/tmp/', str(uuid.uuid4()))
 
     print(green('\nCreating backup.'))
     backup_database(remote_filename)
