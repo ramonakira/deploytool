@@ -214,7 +214,9 @@ class WebsiteDeployment(object):
 
         print(green('\nCollecting static files.'))
 
-        commands.collect_static(self.virtualenv_path, self.source_path)
+        create_symbolic_links = env.get('collect_static_link', True)
+
+        commands.collect_static(self.virtualenv_path, self.source_path, create_symbolic_links)
 
     def rollback(self):
         instance.log(success=False, task_name='deploy', stamp=self.stamp, log_path=self.log_path)

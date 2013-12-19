@@ -138,9 +138,18 @@ def restart_supervisor_jobs(vhost_path):
     run_supervisor(vhost_path, 'restart all')
 
 
-def collect_static(virtualenv_path, source_path):
+def collect_static(virtualenv_path, source_path, create_symbolic_links=True):
+    parameters = [
+        '--noinput',
+        '--verbosity=0',
+        '--traceback',
+    ]
+
+    if create_symbolic_links:
+        parameters.append('--link')
+
     django_manage(
         virtualenv_path,
         source_path,
-        'collectstatic --link --noinput --verbosity=0 --traceback'
+        'collectstatic %s' % ' '.join(parameters)
     )
