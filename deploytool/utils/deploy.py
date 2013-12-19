@@ -209,6 +209,9 @@ class WebsiteDeployment(object):
         )
 
     def collect_static_files(self):
+        if 'before_collect_static_files' in env:
+            env.before_collect_static_files (env, *self.task_args, **self.task_kwargs)
+
         print(green('\nCollecting static files.'))
 
         commands.collect_static(self.virtualenv_path, self.source_path)
