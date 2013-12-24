@@ -69,6 +69,16 @@ Where {pause_moment} can be one of:
 * test
 
 
+Deploying without user input
+----------------------------
+
+A deploy can also be performed without the 'Deploy branch ... at ...? [Y/n]' prompt, like this:
+
+::
+
+    $ fab staging deploy:non_interactive
+
+
 Hooks
 -----
 

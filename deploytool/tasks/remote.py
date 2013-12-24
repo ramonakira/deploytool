@@ -197,8 +197,9 @@ class Deployment(RemoteTask):
 
             question = '\nDeploy branch %s at commit %s?' % _args
 
-            if not confirm(yellow(question)):
-                abort(red('Aborted deployment. Run `fab -d %s` for options.' % self.name))
+            if not 'non_interactive' in args:
+                if not confirm(yellow(question)):
+                    abort(red('Aborted deployment. Run `fab -d %s` for options.' % self.name))
 
         super(Deployment, self).run(*args, **kwargs)
 
