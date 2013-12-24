@@ -1,42 +1,75 @@
 from datetime import datetime
 import uuid
 import os
+import re
 
 from fabric.api import run, cd, env, abort
 from fabric.colors import green, red
-from fabric.contrib.files import exists
+from fabric.contrib.files import exists, append
 
 from . import commands
 from . import postgresql
 
 
-def get_obsolete_instances(vhost_path):
-    """ Return obsolete instances from remote server """
+def get_unused_instances(vhost_path):
+    """
+    Return instance directories that are not the current or the previous instance.
+    The list is sorted reversed by datetime
+    """
+    current_direcory_names = [
+        get_instance_stamp(os.path.join(vhost_path, 'current_instance')),
+        get_instance_stamp(os.path.join(vhost_path, 'previous_instance'))
+    ]
+    re_instance = re.compile(r'[a-z0-9]{40}(_\d+)?')
+
+    def is_valid_path(directory):
+        directory_name = os.path.basename(os.path.dirname(directory))
+
+        if directory_name in current_direcory_names:
+            return False
+        else:
+            return bool(
+                re_instance.match(directory_name)
+            )
 
     try:
-        with cd(vhost_path):
+        # - t: sort by modification time, newest first
+        directories = get_directories(vhost_path, 't')
 
-            # list directories, display name only, sort by ctime, filter by git-commit-tag-length
-            command = 'ls -1tcd */ | awk \'{ if(length($1) == 41) { print $1 }}\''
-
-            # split into list and return everything but the 3 newest instances
-            return run(command).split()[3:]
+        return [
+            directory for directory in directories if is_valid_path(directory)
+        ]
     except:
         return []
 
 
-def prune_obsolete_instances():
+def ls(path, options=''):
+    # run ls with '-1' option wich results in 1 file per line in output
+    output = run('ls -1%s %s' % (options, path))
+
+    files = output.split("\n")
+
+    return [f.strip() for f in files]
+
+
+def get_directories(path, options=''):
+    # - d: filter directories; must add */ to path for this
+    return ls(
+        os.path.join(path, '*/'),
+        'd%s' % options
+    )
+
+
+def prune_obsolete_instances(vhost_path):
     """ Find old instances and remove them to free up space """
 
     removed_instances = []
+    unused_instances = get_unused_instances(vhost_path)
 
-    for instance in get_obsolete_instances(env.vhost_path):
-        is_current = bool(get_instance_stamp(env.current_instance_path) == instance)
-        is_previous = bool(get_instance_stamp(env.previous_instance_path) == instance)
-
-        if not (is_current or is_previous):
-            commands.delete(os.path.join(env.vhost_path, instance))
-            removed_instances.append(instance)
+    # Delete all instances except first 3
+    for instance in unused_instances[3:]:
+        commands.delete(os.path.join(vhost_path, instance))
+        removed_instances.append(instance)
 
     if removed_instances:
         print(green('\nThese old instances were removed from remote filesystem:'))
@@ -71,7 +104,7 @@ def backup_and_download_database(local_output_filename=''):
     if not local_output_filename:
         local_output_filename = generate_output_file()
 
-    remote_filename = os.path.join(env.backup_path, str(uuid.uuid4()))
+    remote_filename = os.path.join('/tmp/', str(uuid.uuid4()))
 
     print(green('\nCreating backup.'))
     backup_database(remote_filename)
@@ -153,10 +186,24 @@ def pip_install_package(virtualenv_path, package, version, cache_path, log_path,
     run(' '.join(arguments))
 
 
-def get_instance_stamp(instance_path):
+def get_instance_stamp(symbolic_link):
     """ Reads symlinked (current/previous) instance and returns its sliced off stamp (git commit SHA1)  """
 
-    return commands.read_link(instance_path)[-40:]
+    instance_path = commands.read_link(symbolic_link)
+
+    if not instance_path:
+        return ''
+    else:
+        directory_name = os.path.basename(instance_path)
+
+        # The directory name can be a stamp or [sha1]_[index]
+
+        match = re.match(r'([a-z0-9]{40})(_\d+)?', directory_name)
+
+        if not match:
+            raise Exception('Could not get stamp from directory %s and symbolic link %s' % (instance_path, symbolic_link))
+
+        return match.groups()[0]
 
 
 def set_current_instance(vhost_path, instance_path):
@@ -185,3 +232,23 @@ def get_project_name():
     Get the project name including prefix. For example 't-aurea' for the aurea test site.
     """
     return '%s%s' % (env.project_name_prefix, env.project_name)
+
+
+def log(success, task_name, stamp, log_path):
+    """ Single line task logging to ./log/fabric.log """
+
+    if success is True:
+        result = 'success'
+    else:
+        result = 'failed'
+
+    message = '[%s] %s %s in %s by %s for %s' % (
+        datetime.today().strftime('%Y-%m-%d %H:%M'),
+        task_name,
+        result,
+        env.environment,
+        env.local_user,
+        stamp
+    )
+
+    append(os.path.join(log_path, 'fabric.log'), message)
