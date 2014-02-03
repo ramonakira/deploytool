@@ -137,6 +137,7 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
         requirements_file,
         '--quiet',
         '--log=%s' % log_file,
+        '--process-dependency-links',
     ]
 
     if use_wheel:
