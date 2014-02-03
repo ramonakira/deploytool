@@ -488,7 +488,7 @@ class InstallWheels(Task):
             with settings(sudo=website_user):
                 sudo('mkdir %s' % temp_wheels_dir, user=website_user)
                 put('requirements.txt', requirements_file, use_sudo=True)
-                sudo("pip wheel --wheel-dir=%s -r %s" % (temp_wheels_dir, requirements_file), user=website_user)
+                sudo("pip wheel --wheel-dir=%s --process-dependency-links -r %s" % (temp_wheels_dir, requirements_file), user=website_user)
 
             sudo('cp %s/*.whl /opt/wheels/' % temp_wheels_dir)
         finally:
