@@ -144,7 +144,6 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
         arguments += [
             '--use-wheel',
             '--find-links=/opt/wheels',
-            '--no-index'
         ]
     else:
         arguments += [
@@ -176,7 +175,6 @@ def pip_install_package(virtualenv_path, package, version, cache_path, log_path,
         arguments += [
             '--use-wheel',
             '--find-links=/opt/wheels',
-            '--no-index'
         ]
     else:
         arguments += [
