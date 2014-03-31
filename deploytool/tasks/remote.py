@@ -12,7 +12,7 @@ from fabric.contrib import django
 
 import deploytool.utils as utils
 from deploytool.utils.commands import restart_supervisor_jobs
-from deploytool.utils.instance import backup_and_download_database
+from deploytool.utils.instance import backup_and_download_database, ls
 from deploytool.utils.deploy import WebsiteDeployment
 
 
@@ -473,23 +473,42 @@ class RestoreRemoteDatabase(RemoteTask):
 class InstallWheels(Task):
     name = 'install_wheels'
 
+    def __init__(self, *args, **kwargs):
+        self.skip_packages = kwargs.pop('skip_packages', [])
+
+        super(InstallWheels, self).__init__(*args, **kwargs)
+
     def run(self):
         website_user = env.user
         env.user = 'leukeleu'
 
-        # try sudo root now
-        sudo('ls')
+        with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
+            # try sudo root now
+            sudo('ls')
 
-        temp_wheels_dir = "/tmp/%s" % uuid.uuid4().hex
-        try:
-            requirements_file = os.path.join(temp_wheels_dir, 'requirements.txt')
+            temp_wheels_dir = "/tmp/%s" % uuid.uuid4().hex
+            try:
+                requirements_file = os.path.join(temp_wheels_dir, 'requirements.txt')
 
-            # Build the wheel as website user
-            with settings(sudo=website_user):
-                sudo('mkdir %s' % temp_wheels_dir, user=website_user)
-                put('requirements.txt', requirements_file, use_sudo=True)
-                sudo("pip wheel --wheel-dir=%s --process-dependency-links -r %s" % (temp_wheels_dir, requirements_file), user=website_user)
+                # Build the wheel as website user
+                with settings(sudo=website_user):
+                    sudo('mkdir %s' % temp_wheels_dir, user=website_user)
+                    put('requirements.txt', requirements_file, use_sudo=True)
+                    sudo("pip wheel --wheel-dir=%s --process-dependency-links -r %s" % (temp_wheels_dir, requirements_file), user=website_user)
 
-            sudo('cp %s/*.whl /opt/wheels/' % temp_wheels_dir)
-        finally:
-            sudo("rm -rf %s" % temp_wheels_dir)
+                # Copy wheel files, except wheels from skip_packages option
+                wheel_files = ls(os.path.join(temp_wheels_dir, '*.whl'))
+                for wheel_file in wheel_files:
+                    wheel_base_name = os.path.basename(wheel_file)
+                    if self.must_include_file(wheel_base_name):
+                        print wheel_base_name
+                        sudo('cp %s /opt/wheels' % os.path.join(temp_wheels_dir, wheel_file))
+            finally:
+                sudo("rm -rf %s" % temp_wheels_dir)
+
+    def must_include_file(self, wheel_file):
+        for skip_package in self.skip_packages:
+            if wheel_file.startswith('%s-' % skip_package):
+                return False
+        else:
+            return True
