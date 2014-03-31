@@ -166,3 +166,39 @@ Deployed Folder structure
                         urls.py
                         wsgi.py (changed)
                     /media -> /var/www/vhosts/s-myproject/media       is symlinked to media_path on every deploy
+
+Use wheels
+==============
+
+You can deploy faster using `Wheel <http://wheel.readthedocs.org>`_ files.
+
+Install wheels
+--------------
+
+Install wheel files on the server using the ``install_wheels`` command.
+
+Add the ``install_wheels`` command to the fabfile:
+
+::
+  from deploytool import tasks
+  install_wheels = tasks.remote.InstallWheels()
+
+Call install_wheels command. You must have sudo rights for this:
+
+::
+  fab live install_wheels
+
+This will install the wheel files in the ``/opt/wheels`` directory.
+
+You can skip packages with the ``skip_packages`` parameter in your fabfile:
+
+::
+  install_wheels = tasks.remote.InstallWheels(skip_packages=['zyncc'])
+
+Deployment with wheels
+----------------------
+
+Use the ``use_wheel`` parameter to use wheel files in deployments:
+
+::
+  fab live deploy:use_wheel
