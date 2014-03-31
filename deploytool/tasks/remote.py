@@ -502,8 +502,9 @@ class InstallWheels(Task):
                 for wheel_file in wheel_files:
                     wheel_base_name = os.path.basename(wheel_file)
                     if self.must_include_file(wheel_base_name):
-                        print wheel_base_name
-                        sudo('cp %s /opt/wheels' % os.path.join(temp_wheels_dir, wheel_file))
+                        if not exists(os.path.join('/opt/wheels/', wheel_base_name)):
+                            print wheel_base_name
+                            sudo('cp %s /opt/wheels' % os.path.join(temp_wheels_dir, wheel_file))
             finally:
                 sudo("rm -rf %s" % temp_wheels_dir)
 
