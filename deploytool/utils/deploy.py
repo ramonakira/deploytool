@@ -71,10 +71,12 @@ class WebsiteDeployment(object):
             self.copy_settings()
 
             self.create_media_folder_link()
-
-            self.collect_static_files()
         except:
             self.rollback()
+
+        self.update_instance_symlinks()
+
+        self.collect_static_files()
 
         if not self.skip_syncdb:
             self.update_database()
@@ -218,6 +220,9 @@ class WebsiteDeployment(object):
 
         commands.collect_static(self.virtualenv_path, self.source_path, create_symbolic_links)
 
+        if 'after_collect_static_files' in env:
+            env.after_collect_static_files (env, *self.task_args, **self.task_kwargs)
+
     def rollback(self):
         instance.log(success=False, task_name='deploy', stamp=self.stamp, log_path=self.log_path)
 
@@ -296,8 +301,6 @@ class WebsiteDeployment(object):
 
     def handle_restart(self):
         self.handle_before_restart()
-
-        self.update_instance_symlinks()
 
         self.restart_supervisor()
 
