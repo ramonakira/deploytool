@@ -268,7 +268,7 @@ class Rollback(RemoteTask):
             utils.instance.rollback(env.vhost_path)
 
             print(green('\nRestarting website.'))
-            restart_supervisor_jobs()
+            restart_supervisor_jobs(env.vhost_path)
 
             print(green('\nRemoving this instance from filesystem.'))
             utils.commands.delete(env.instance_path)
