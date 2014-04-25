@@ -33,13 +33,15 @@ class WebsiteDeployment(object):
     - project_name:        example
     - project_name_prefix: t-
     - stamp:               sha1 stamp of git checkin; normally this is the head of the repository
+    - restart_services:    which supervisor services must be restarted; default = 'all'
     """
-    def __init__(self, vhost_path, project_name, project_name_prefix, project_settings_directory, stamp, pause_at, use_wheel, skip_syncdb, task_args, task_kwargs):
+    def __init__(self, vhost_path, project_name, project_name_prefix, project_settings_directory, stamp, pause_at, use_wheel, skip_syncdb, restart_services, task_args, task_kwargs):
         self.vhost_path = vhost_path
         self.stamp = stamp
         self.pause_at = pause_at
         self.use_wheel = use_wheel
         self.skip_syncdb = skip_syncdb
+        self.restart_services = restart_services
         self.task_args = task_args
         self.task_kwargs = task_kwargs
 
@@ -320,7 +322,7 @@ class WebsiteDeployment(object):
 
     def restart_supervisor(self):
         print(green('\nRestarting Website.'))
-        commands.restart_supervisor_jobs(self.vhost_path)
+        commands.restart_supervisor_jobs(self.vhost_path, self.restart_services)
 
     def handle_after_restart(self):
         if 'after_restart' in self.pause_at:

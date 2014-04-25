@@ -230,6 +230,7 @@ class Deployment(RemoteTask):
             pause_at=pause_at,
             use_wheel=use_wheel,
             skip_syncdb=skip_syncdb,
+            restart_services=env.get('restart_services', None),
             task_args=args,
             task_kwargs=kwargs,
         )

@@ -134,8 +134,11 @@ def run_supervisor(vhost_path, parameters):
     run('supervisorctl -c %s %s' % (config_file, parameters))
 
 
-def restart_supervisor_jobs(vhost_path):
-    run_supervisor(vhost_path, 'restart all')
+def restart_supervisor_jobs(vhost_path, restart_services=None):
+    if not restart_services:
+        restart_services = ['all']
+
+    run_supervisor(vhost_path, 'restart %s' % ' '.join(restart_services))
 
 
 def collect_static(virtualenv_path, source_path, create_symbolic_links=True):
