@@ -11,7 +11,7 @@ from fabric.contrib.console import confirm
 from fabric.contrib import django
 
 import deploytool.utils as utils
-from deploytool.utils.commands import restart_supervisor_jobs
+from deploytool.utils import commands
 from deploytool.utils.instance import backup_and_download_database, ls
 from deploytool.utils.deploy import WebsiteDeployment
 
@@ -98,7 +98,7 @@ class RemoteTask(Task):
         raise NotImplementedError
 
     def log(self, success):
-        utils.instance.log(success, task_name=self.name, stamp=self.stamp)
+        utils.instance.log(success, task_name=self.name, stamp=self.stamp, log_path=env.log_path)
 
     def run(self, *args, **kwargs):
         """ Hide output, update fabric env, run task """
@@ -128,7 +128,9 @@ class RemoteTask(Task):
             [require(r) for r in self.requirements]
 
             # update fabric environment for instance settings
-            instance_path = os.path.join(env.vhost_path, self.stamp)
+            # instance_path is the path of current instance; it's not the symbolic link
+            instance_path = utils.commands.read_link(env.current_instance_path)
+
             full_project_name = '%s%s' % (env.project_name_prefix, env.project_name)
 
             # instance_stamp:       [sha1]
@@ -259,7 +261,12 @@ class Rollback(RemoteTask):
             abort(red('Could not find backupfile to restore database with.'))
 
         # start rollback
+        is_website_running = True
         try:
+            print(green('\nStopping website'))
+            commands.stop_supervisor_jobs(env.vhost_path)
+            is_website_running = False
+
             print(green('\nRestoring database to start of this instance.'))
             utils.instance.restore_database(
                 os.path.join(env.backup_path, 'db_backup_start.sql')
@@ -268,15 +275,19 @@ class Rollback(RemoteTask):
             print(green('\nRemoving this instance and set previous to current.'))
             utils.instance.rollback(env.vhost_path)
 
-            print(green('\nRestarting website.'))
-            restart_supervisor_jobs(env.vhost_path)
+            print(green('\nStarting website.'))
+            commands.start_supervisor_jobs(env.vhost_path)
+            is_website_running = True
 
             print(green('\nRemoving this instance from filesystem.'))
             utils.commands.delete(env.instance_path)
 
             self.log(success=True)
 
-        except Exception, e:
+        except Exception as e:
+            if not is_website_running:
+                commands.start_supervisor_jobs(env.vhost_path)
+
             self.log(success=False)
             abort(red('Rollback failed: %s ' % e.message))
 

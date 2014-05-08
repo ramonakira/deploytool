@@ -141,6 +141,14 @@ def restart_supervisor_jobs(vhost_path, restart_services=None):
     run_supervisor(vhost_path, 'restart %s' % ' '.join(restart_services))
 
 
+def stop_supervisor_jobs(vhost_path):
+    run_supervisor(vhost_path, 'stop all')
+
+
+def start_supervisor_jobs(vhost_path):
+    run_supervisor(vhost_path, 'start all')
+
+
 def collect_static(virtualenv_path, source_path, create_symbolic_links=True):
     parameters = [
         '--noinput',
