@@ -1,12 +1,9 @@
-=================
-Fabric Deployment
-=================
+## Fabric Deployment
 
 Project application for deployment and local tasks.
 
 
-Remote requirements
-===================
+### Remote requirements
 
 * Ubuntu
 * Nginx
@@ -17,26 +14,22 @@ Remote requirements
 * virtualenv (1.6+)
 
 
-Local requirements
-==================
+### Local requirements
 
 * Fabric (1.2.2+)
 * Git (1.6+)
 
 
-Usage
-=====
+### Usage
 
 Install deploytool
-
-::
 
     $ pip install deploytool
 
 
 Add a fabfile.py in the root folder of your Django project. An example can be found here:
 
-`https://github.com/leukeleu/deploytool <https://github.com/leukeleu/deploytool>`_
+`https://github.com/leukeleu/deploytool <https://github.com/leukeleu/deploytool>`
 
 Deploy the project:
 
@@ -44,14 +37,11 @@ Deploy the project:
 * First deploy ('fab staging deploy')
 
 
-Pausing
--------
+#### Pausing
 
 The deploy can be paused at will at several predefined moments.
 If you pause the deploy, you get thrown into a (slightly crippled) shell session on the remote server.
 When you `exit` from the remote, the deploy will continue where it left off.
-
-::
 
     $ fab staging deploy:pause={pause_moment}
 
@@ -69,36 +59,29 @@ Where {pause_moment} can be one of:
 * test
 
 
-Deploying without user input
-----------------------------
+#### Deploying without user input
+
 
 A deploy can also be performed without the 'Deploy branch ... at ...? [Y/n]' prompt, like this:
-
-::
 
     $ fab staging deploy:non_interactive
 
 
-Hooks
------
+#### Hooks
 
 Hooks are functions that can be run at predefined moments during the deploy.
 Hooks can be attached to the deploy-flow of an instance like this:
 
-::
 
     def before_syncdb(env, *args, **kwargs):
         # do something useful before syncing the database
         ...
 
 
-    staging_items = {
-        'website_name': 'subdomain.example.com',
-        'project_name_prefix': 's-',
-        'environment': 'staging',
-        'before_syncdb': before_syncdb,
-    }.items()
-
+    settings.update(
+        ...
+        before_syncdb=before_syncdb,
+    )
 
 The available hooks are:
 
@@ -114,16 +97,11 @@ The available hooks are:
 * test
 
 
-Compass compiling
-=================
+#### Compass compiling
 
 When you set a `compass_version` number in your settings. The deploy task will compile your compass project locally, upload the locally generated root static dir to the remote. Remember that your compass config must compile your css to the root static dir of your django project. With this setting you can ignore your generated css files in your repository.
 
-
-Examples
-========
-
-::
+##### Examples
 
     # list all available tasks
     $ fab list
@@ -138,12 +116,9 @@ Examples
     $ fab staging deploy
 
 
-Deployed Folder structure
-=========================
+#### Deployed Folder structure
 
-::
-
-    /var/www/vhosts/                                               <- vhosts_path
+        /var/www/vhosts/                                               <- vhosts_path
         /s-myproject                                               <- vhost_path = {project_name_prefix}{project_name}
             django.wsgi
             settings.py                                               is copied to project_project_path/settings.py on every deploy
@@ -167,38 +142,31 @@ Deployed Folder structure
                         wsgi.py (changed)
                     /media -> /var/www/vhosts/s-myproject/media       is symlinked to media_path on every deploy
 
-Use wheels
-==============
+#### Use wheels
 
-You can deploy faster using `Wheel <http://wheel.readthedocs.org>`_ files.
+You can deploy faster using [Wheel](http://wheel.readthedocs.org) files.
 
-Install wheels
---------------
+##### Install wheels
 
 Install wheel files on the server using the ``install_wheels`` command.
 
 Add the ``install_wheels`` command to the fabfile:
 
-::
   from deploytool import tasks
   install_wheels = tasks.remote.InstallWheels()
 
 Call install_wheels command. You must have sudo rights for this:
 
-::
-  fab live install_wheels
+  $ fab live install_wheels
 
 This will install the wheel files in the ``/opt/wheels`` directory.
 
 You can skip packages with the ``skip_packages`` parameter in your fabfile:
 
-::
-  install_wheels = tasks.remote.InstallWheels(skip_packages=['zyncc'])
+    install_wheels = tasks.remote.InstallWheels(skip_packages=['Django'])
 
-Deployment with wheels
-----------------------
+##### Deployment with wheels
 
 Use the ``use_wheel`` parameter to use wheel files in deployments:
 
-::
-  fab live deploy:use_wheel
+    $ fab live deploy:use_wheel
