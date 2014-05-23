@@ -21,7 +21,7 @@ setup(
     ],
 
     description='Deploytool - a Django Fabric deploytool',
-    long_description=open('README.rst').read(),
+    long_description=open('README.md').read(),
 
     author='Nick Badoux',
     author_email='nbadoux@leukeleu.nl',
