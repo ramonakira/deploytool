@@ -73,12 +73,12 @@ class WebsiteDeployment(object):
             self.copy_settings()
 
             self.create_media_folder_link()
+
+            self.collect_static_files()
         except:
             self.rollback()
 
         self.update_instance_symlinks()
-
-        self.collect_static_files()
 
         if not self.skip_syncdb:
             self.update_database()
@@ -141,6 +141,9 @@ class WebsiteDeployment(object):
         print(green('\nCreating virtual environment.'))
 
         instance.create_virtualenv(self.virtualenv_path)
+
+        # set virtualenv path in env
+        env.virtualenv_path = self.virtualenv_path
 
     def pip_install(self):
         if 'before_pip_install' in self.pause_at:
@@ -214,7 +217,7 @@ class WebsiteDeployment(object):
 
     def collect_static_files(self):
         if 'before_collect_static_files' in env:
-            env.before_collect_static_files (env, *self.task_args, **self.task_kwargs)
+            env.before_collect_static_files(env, *self.task_args, **self.task_kwargs)
 
         print(green('\nCollecting static files.'))
 
@@ -223,7 +226,7 @@ class WebsiteDeployment(object):
         commands.collect_static(self.virtualenv_path, self.source_path, create_symbolic_links)
 
         if 'after_collect_static_files' in env:
-            env.after_collect_static_files (env, *self.task_args, **self.task_kwargs)
+            env.after_collect_static_files(env, *self.task_args, **self.task_kwargs)
 
     def rollback(self):
         instance.log(success=False, task_name='deploy', stamp=self.stamp, log_path=self.log_path)
