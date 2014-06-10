@@ -495,7 +495,7 @@ class InstallWheels(Task):
         website_user = env.user
         env.user = 'leukeleu'
 
-        with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
+        with settings(hide('warnings', 'running', 'stdout', 'stderr')):
             # try sudo root now
             sudo('ls')
 
