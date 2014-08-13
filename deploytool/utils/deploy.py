@@ -186,7 +186,7 @@ class WebsiteDeployment(object):
         instance.pip_install_package(
             self.virtualenv_path,
             'gunicorn',
-            '19.0.0',
+            '19.1.0',
             env.cache_path,
             self.log_path,
         )
