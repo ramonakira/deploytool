@@ -8,13 +8,13 @@ def transfer_source(upload_path, tree):
         upload_path =>  target location to extract on remote
         tree        =>  git ID for branch, commit or tag
     """
-    tar_file = 'source.tar'
-    local('git archive --format=tar --output=%s %s' % (tar_file, tree))
+    tar_file = 'source.tgz'
+    local('git archive --format=tar.gz --output=%s %s' % (tar_file, tree))
     uploaded_files = put(tar_file, upload_path)
 
     if uploaded_files.succeeded:
         with cd(upload_path):
-            run('tar -xf %s' % uploaded_files[0])
+            run('tar -xzf %s' % uploaded_files[0])
             run('rm -f ./%s' % tar_file)
         local('rm -f ./%s' % tar_file)
 
@@ -36,14 +36,14 @@ def compass_compile(upload_path, tree, compass_version):
         local('tar -C %s -xf %s' % (local_tmp_dir, local_tmp_tar))
         local('compass _' + compass_version + '_ clean && compass _' + compass_version + '_ compile %s --environment production' % local_tmp_dir)
 
-        local_static_tar = 'static.tar'
-        local('tar -C %s -cf %s %s' % (local_tmp_dir, local_static_tar, 'static'))
+        local_static_tar = 'static.tgz'
+        local('tar -C %s -czf %s %s' % (local_tmp_dir, local_static_tar, 'static'))
         upload_static = put(local_static_tar, upload_path)
 
         # upload static files
         if upload_static.succeeded:
             with cd(upload_path):
-                run('tar -xf %s' % upload_static[0])
+                run('tar -xzf %s' % upload_static[0])
                 run('rm -f ./%s' % local_static_tar)
 
             # remove local .tmp dir and tar files, recompile compass project
