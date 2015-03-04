@@ -116,17 +116,23 @@ def rotate_log(log_path, max_bytes=0, backups=0):
     if max_bytes and file_size >= max_bytes:
         if backups > 0:
             for i in xrange(backups - 1, 0, -1):
-                source_path = "%s.%d" % (log_path, i)
-                dest_path = "%s.%d" % (log_path, i + 1)
+                if i == 1:
+                    source_path = '%s.1' % log_path
+                    dest_path = '%s.2' % log_path
+                else:
+                    source_path = '%s.%d.gz' % (log_path, i)
+                    dest_path = '%s.%d.gz' % (log_path, i + 1)
                 if exists(source_path):
                     if exists(dest_path):
                         delete(dest_path)
                     rename(source_path, dest_path)
-            dest_path = log_path + ".1"
+                    if i == 1:
+                        run('gzip %s' % dest_path)
+            dest_path = '%s.1' % log_path
             if exists(dest_path):
                 delete(dest_path)
             copy(log_path, dest_path)
-        run("> %s" % log_path)
+        run('> %s' % log_path)
 
 
 def python_run(virtualenv_path, command, sudo_username):
