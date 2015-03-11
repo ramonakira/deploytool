@@ -213,10 +213,12 @@ class Deployment(RemoteTask):
         # check if deploy is possible
         if not use_force:
             if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
-                abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
-            if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
+                question = 'Warning: %s already is the current instance, deploy anyway?' % self.stamp
+                if 'non_interactive' in args or not confirm(yellow(question), default=False):
+                    abort(red('Deploy aborted because %s already is the current instance.' % self.stamp))
+            elif self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
                 abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
-            if exists(os.path.join(env.vhost_path, self.stamp)):
+            elif exists(os.path.join(env.vhost_path, self.stamp)):
                 abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
 
         # Parse optional 'pause' argument, can be given like this:
