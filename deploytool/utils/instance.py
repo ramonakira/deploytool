@@ -151,6 +151,7 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
             '--use-mirrors'
         ]
 
+    commands.rotate_log(log_file, max_bytes=512, backups=10)
     run(' '.join(arguments))
 
 
@@ -242,7 +243,7 @@ def log(success, task_name, stamp, log_path):
         result = 'failed'
 
     message = '[%s] %s %s in %s by %s for %s' % (
-        datetime.today().strftime('%Y-%m-%d %H:%M'),
+        datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
         task_name,
         result,
         env.environment,
@@ -250,4 +251,6 @@ def log(success, task_name, stamp, log_path):
         stamp
     )
 
-    append(os.path.join(log_path, 'fabric.log'), message)
+    log_file = os.path.join(log_path, 'fabric.log')
+    commands.rotate_log(log_file, max_bytes=1024**2, backups=5)
+    append(log_file, message)
