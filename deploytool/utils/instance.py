@@ -99,12 +99,12 @@ def restore_database(file_path):
 def backup_and_download_database(local_output_filename=''):
     def generate_output_file():
         timestamp = datetime.today().strftime('%y%m%d%H%M')
-        return '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
+        return '%s%s_%s.sql.gz' % (env.project_name_prefix, env.database_name, timestamp)
 
     if not local_output_filename:
         local_output_filename = generate_output_file()
 
-    remote_filename = os.path.join('/tmp/', str(uuid.uuid4()))
+    remote_filename = os.path.join('/tmp/', '%s.gz' % uuid.uuid4())
 
     print(green('\nCreating backup.'))
     backup_database(remote_filename)
