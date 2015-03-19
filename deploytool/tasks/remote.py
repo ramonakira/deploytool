@@ -259,7 +259,16 @@ class Rollback(RemoteTask):
         # check if rollback is possible
         if not exists(env.previous_instance_path):
             abort(red('No rollback possible. No previous instance found to rollback to.'))
-        if not exists(os.path.join(env.backup_path, 'db_backup_start.sql')):
+
+        # Find gziped or plain db_backup file (for backwards compatibility)
+        for db_backup_file in ('db_backup_start.sql.gz', 'db_backup_start.sql'):
+            db_backup_path = os.path.join(env.backup_path, db_backup_file)
+            if exists(db_backup_path):
+                break
+        else:
+            db_backup_path = None
+
+        if db_backup_path is None:
             abort(red('Could not find backupfile to restore database with.'))
 
         # start rollback
@@ -270,9 +279,7 @@ class Rollback(RemoteTask):
             is_website_running = False
 
             print(green('\nRestoring database to start of this instance.'))
-            utils.instance.restore_database(
-                os.path.join(env.backup_path, 'db_backup_start.sql')
-            )
+            utils.instance.restore_database(db_backup_path)
 
             print(green('\nRemoving this instance and set previous to current.'))
             utils.instance.rollback(env.vhost_path)
@@ -397,9 +404,18 @@ class RestoreDatabase(RemoteTask):
     name = 'restore_database'
 
     def __call__(self):
-        utils.instance.restore_database(
-            os.path.join(env.backup_path, 'db_backup_start.sql')
-        )
+        # Find gziped or plain db_backup file (for backwards compatibility)
+        for db_backup_file in ('db_backup_start.sql.gz', 'db_backup_start.sql'):
+            db_backup_path = os.path.join(env.backup_path, db_backup_file)
+            if exists(db_backup_path):
+                break
+        else:
+            db_backup_path = None
+
+        if db_backup_path is None:
+            abort(red('Could not find backupfile to restore database with.'))
+
+        utils.instance.restore_database(db_backup_path)
 
 
 class Test(RemoteTask):

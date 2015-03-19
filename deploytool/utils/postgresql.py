@@ -2,9 +2,12 @@ from fabric.operations import run
 
 
 def backup_database(database_name, username, file_path):
-    run(
-        'pg_dump --no-owner %s > %s' % (database_name, file_path)
-    )
+    command = ['pg_dump --no-owner %(db)s']
+    if file_path.endswith('.gz'):
+        command.append('| gzip')
+    command.append('> %(path)s')
+    command = ' '.join(command)
+    run(command % {'db': database_name, 'path': file_path})
 
 
 def restore_database(database_name, username, file_path):
@@ -15,7 +18,11 @@ def restore_database(database_name, username, file_path):
 
     _create_database(database_name, username)
 
-    result = run('psql -d %s -f %s' % (database_name, file_path))
+    if file_path.endswith('.gz'):
+        command = 'gunzip -c %(path)s | psql -d %(db)s'
+    else:
+        command = 'psql -d %(db)s -f %(path)s'
+    result = run(command % {'db': database_name, 'path': file_path})
 
     if result.failed:
         raise Exception('Could not restore the database')

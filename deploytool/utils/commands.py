@@ -9,6 +9,14 @@ def get_folder_size(path):
     return run('du -h --summarize %s' % path)
 
 
+def get_file_size(path):
+    """
+    Returns file size for regular files.
+    Returns -1 if file does not exist or path is not a regular file (e.g. dir or symlink)
+    """
+    return int(run("if [ -f {0} ] && [ ! -h {0} ]; then stat -c %s {0}; else echo '-1'; fi".format(path)))
+
+
 def get_changed_files(local_stamp, remote_stamp, show_full_diff=False):
     """ Returns git diff from remote commit hash vs local HEAD commit hash """
 
@@ -92,6 +100,39 @@ def copy(from_path, to_path):
 def rename(old_path, new_path):
 
     run('mv %s %s' % (old_path, new_path))
+
+
+def rotate_log(log_path, max_bytes=0, backups=0):
+    """
+    Rotates a log file.
+
+    Rotation only happens if the given file path exists, and is >= max_bytes.
+
+    If backups is > 0 log_path will be copied to log_path + .1, previous backups to log_path.n + 1 etc.
+
+    Finally the file in log_path will be truncated.
+    """
+    file_size = get_file_size(log_path)
+    if max_bytes and file_size >= max_bytes:
+        if backups > 0:
+            for i in xrange(backups - 1, 0, -1):
+                if i == 1:
+                    source_path = '%s.1' % log_path
+                    dest_path = '%s.2' % log_path
+                else:
+                    source_path = '%s.%d.gz' % (log_path, i)
+                    dest_path = '%s.%d.gz' % (log_path, i + 1)
+                if exists(source_path):
+                    if exists(dest_path):
+                        delete(dest_path)
+                    rename(source_path, dest_path)
+                    if i == 1:
+                        run('gzip %s' % dest_path)
+            dest_path = '%s.1' % log_path
+            if exists(dest_path):
+                delete(dest_path)
+            copy(log_path, dest_path)
+        run('> %s' % log_path)
 
 
 def python_run(virtualenv_path, command, sudo_username):
