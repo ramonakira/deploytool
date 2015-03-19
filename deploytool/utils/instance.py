@@ -118,10 +118,10 @@ def backup_and_download_database(local_output_filename=''):
 def create_virtualenv(virtualenv_path):
     """ Creates virtual environment for instance """
 
-    run('virtualenv %s --no-site-packages --setuptools' % virtualenv_path)
+    run('virtualenv %s' % virtualenv_path)
 
 
-def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log_path, use_wheel=False):
+def pip_install_requirements(virtualenv_path, requirements_path, log_path):
     """ Requires availability of Pip (0.8.1 or later) on remote system """
 
     requirements_file = os.path.join(requirements_path, 'requirements.txt')
@@ -136,26 +136,15 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
         '-r',
         requirements_file,
         '--quiet',
-        '--log=%s' % log_file,
-        '--process-dependency-links',
+        '-vvv',
+        '--log=%s' % log_file
     ]
-
-    if use_wheel:
-        arguments += [
-            '--use-wheel',
-            '--find-links=/opt/wheels',
-        ]
-    else:
-        arguments += [
-            '--download-cache=%s' % cache_path,
-            '--use-mirrors'
-        ]
 
     commands.rotate_log(log_file, max_bytes=512, backups=10)
     run(' '.join(arguments))
 
 
-def pip_install_package(virtualenv_path, package, version, cache_path, log_path, use_wheel=False):
+def pip_install_package(virtualenv_path, package, version, log_path):
     """ Install this python package using pip """
 
     if not exists(virtualenv_path):
@@ -171,17 +160,6 @@ def pip_install_package(virtualenv_path, package, version, cache_path, log_path,
         '--quiet',
         '--log=%s' % log_file,
     ]
-
-    if use_wheel:
-        arguments += [
-            '--use-wheel',
-            '--find-links=/opt/wheels',
-        ]
-    else:
-        arguments += [
-            '--download-cache=%s' % cache_path,
-            '--use-mirrors'
-        ]
 
     run(' '.join(arguments))
 

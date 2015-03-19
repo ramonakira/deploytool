@@ -35,11 +35,10 @@ class WebsiteDeployment(object):
     - stamp:               sha1 stamp of git checkin; normally this is the head of the repository
     - restart_services:    which supervisor services must be restarted; default = 'all'
     """
-    def __init__(self, vhost_path, project_name, project_name_prefix, project_settings_directory, stamp, pause_at, use_wheel, skip_syncdb, restart_services, task_args, task_kwargs):
+    def __init__(self, vhost_path, project_name, project_name_prefix, project_settings_directory, stamp, pause_at, skip_syncdb, restart_services, task_args, task_kwargs):
         self.vhost_path = vhost_path
         self.stamp = stamp
         self.pause_at = pause_at
-        self.use_wheel = use_wheel
         self.skip_syncdb = skip_syncdb
         self.restart_services = restart_services
         self.task_args = task_args
@@ -169,9 +168,7 @@ class WebsiteDeployment(object):
         instance.pip_install_requirements(
             self.virtualenv_path,
             self.source_path,
-            env.cache_path,
-            self.log_path,
-            use_wheel=self.use_wheel
+            self.log_path
         )
 
         if 'after_pip_install' in self.pause_at:
@@ -187,7 +184,6 @@ class WebsiteDeployment(object):
             self.virtualenv_path,
             'gunicorn',
             '17.5',
-            env.cache_path,
             self.log_path,
         )
 

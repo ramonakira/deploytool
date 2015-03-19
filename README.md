@@ -9,9 +9,9 @@ Project application for deployment and local tasks.
 * Nginx
 * Postgresql
 * OpenSSH
-* Pip (1.1+)
-* Python (2.6)
-* virtualenv (1.6+)
+* Pip (6+)
+* Python (2.7)
+* virtualenv (12+)
 
 
 ### Local requirements
@@ -148,14 +148,14 @@ You can deploy faster using [Wheel](http://wheel.readthedocs.org) files.
 
 ##### Install wheels
 
-Install wheel files on the server using the ``install_wheels`` command.
+Create wheel files on the server using the ``install_wheels`` command.
 
 Add the ``install_wheels`` command to the fabfile:
 
   from deploytool import tasks
   install_wheels = tasks.remote.InstallWheels()
 
-Call install_wheels command. You must have sudo rights for this:
+Call install_wheels command:
 
   $ fab live install_wheels
 
@@ -164,9 +164,3 @@ This will install the wheel files in the ``/opt/wheels`` directory.
 You can skip packages with the ``skip_packages`` parameter in your fabfile:
 
     install_wheels = tasks.remote.InstallWheels(skip_packages=['Django'])
-
-##### Deployment with wheels
-
-Use the ``use_wheel`` parameter to use wheel files in deployments:
-
-    $ fab live deploy:use_wheel

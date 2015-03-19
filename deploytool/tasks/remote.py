@@ -2,7 +2,7 @@ import os
 import sys
 import uuid
 
-from fabric.operations import require, local, open_shell, put, sudo
+from fabric.operations import require, local, open_shell, put, sudo, run
 from fabric.tasks import Task
 from fabric.api import env, settings, hide, abort
 from fabric.colors import green, red, magenta, yellow
@@ -63,7 +63,6 @@ class RemoteHost(Task):
         # supervisor_path:        /var/www/vhosts/t-example/supervisor
 
         env.update({
-            'cache_path': '/opt/pip_cache',
             'current_instance_path': os.path.join(vhost_path, 'current_instance'),
             'database_name': env.project_name,
             'environment': env.environment,
@@ -207,8 +206,7 @@ class Deployment(RemoteTask):
 
     def __call__(self, *args, **kwargs):
         use_force = 'force' in args
-        skip_syncdb = 'skip_syncdb' in args
-        use_wheel = 'use_wheel' in args
+        skip_syncdb = 'skip_syncdb' in args\
 
         # check if deploy is possible
         if not use_force:
@@ -232,7 +230,6 @@ class Deployment(RemoteTask):
             project_settings_directory=env.project_path_name,
             stamp=self.stamp,
             pause_at=pause_at,
-            use_wheel=use_wheel,
             skip_syncdb=skip_syncdb,
             restart_services=env.get('restart_services', None),
             task_args=args,
@@ -457,7 +454,7 @@ class Restart(RemoteTask):
     def __call__(self, *args, **kwargs):
         print(green('\nRestarting Website.'))
 
-        restart_supervisor_jobs(env.vhost_path)
+        commands.restart_supervisor_jobs(env.vhost_path)
 
         if 'after_restart' in env:
             env.after_restart(env, *args, **kwargs)
@@ -514,18 +511,13 @@ class InstallWheels(Task):
         env.user = 'leukeleu'
 
         with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
-            # try sudo root now
-            sudo('ls')
-
             temp_wheels_dir = "/tmp/%s" % uuid.uuid4().hex
             try:
                 requirements_file = os.path.join(temp_wheels_dir, 'requirements.txt')
 
-                # Build the wheel as website user
-                with settings(sudo=website_user):
-                    sudo('mkdir %s' % temp_wheels_dir, user=website_user)
-                    put('requirements.txt', requirements_file, use_sudo=True)
-                    sudo("pip wheel --wheel-dir=%s --process-dependency-links -r %s" % (temp_wheels_dir, requirements_file), user=website_user)
+                run('mkdir %s' % temp_wheels_dir)
+                put('requirements.txt', requirements_file)
+                run('pip wheel --wheel-dir=%s -r %s' % (temp_wheels_dir, requirements_file))
 
                 # Copy wheel files, except wheels from skip_packages option
                 wheel_files = ls(os.path.join(temp_wheels_dir, '*.whl'))
@@ -534,13 +526,13 @@ class InstallWheels(Task):
                     if self.must_include_file(wheel_base_name):
                         if not exists(os.path.join('/opt/wheels/', wheel_base_name)):
                             print wheel_base_name
-                            sudo('cp %s /opt/wheels' % os.path.join(temp_wheels_dir, wheel_file))
+                            run('cp %s /opt/wheels' % os.path.join(temp_wheels_dir, wheel_file))
             finally:
-                sudo("rm -rf %s" % temp_wheels_dir)
+                run("rm -rf %s" % temp_wheels_dir)
+                env.user = website_user
 
     def must_include_file(self, wheel_file):
         for skip_package in self.skip_packages:
             if wheel_file.startswith('%s-' % skip_package):
                 return False
-        else:
-            return True
+        return True
