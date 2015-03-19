@@ -256,18 +256,18 @@ class WebsiteDeployment(object):
         print(green('\nBacking up database at start.'))
 
         instance.backup_database(
-            os.path.join(self.backup_path, 'db_backup_start.sql')
+            os.path.join(self.backup_path, 'db_backup_start.sql.gz')
         )
 
     def backup_db_at_end(self):
         print(green('\nBacking up database at end.'))
 
         instance.backup_database(
-            os.path.join(self.backup_path, 'db_backup_end.sql')
+            os.path.join(self.backup_path, 'db_backup_end.sql.gz')
         )
 
     def restore_db_at_start(self):
-        backup_file = os.path.join(self.backup_path, 'db_backup_start.sql')
+        backup_file = os.path.join(self.backup_path, 'db_backup_start.sql.gz')
 
         if exists(backup_file):
             print(yellow('\nRestoring database.'))

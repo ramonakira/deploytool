@@ -213,10 +213,12 @@ class Deployment(RemoteTask):
         # check if deploy is possible
         if not use_force:
             if self.stamp == utils.instance.get_instance_stamp(env.current_instance_path):
-                abort(red('Deploy aborted because %s is already the current instance.' % self.stamp))
-            if self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
+                question = 'Warning: %s already is the current instance, deploy anyway?' % self.stamp
+                if 'non_interactive' in args or not confirm(yellow(question), default=False):
+                    abort(red('Deploy aborted because %s already is the current instance.' % self.stamp))
+            elif self.stamp == utils.instance.get_instance_stamp(env.previous_instance_path):
                 abort(red('Deploy aborted because %s is the previous instance. Use rollback task instead.' % self.stamp))
-            if exists(os.path.join(env.vhost_path, self.stamp)):
+            elif exists(os.path.join(env.vhost_path, self.stamp)):
                 abort(red('Deploy aborted because instance %s has already been deployed.' % self.stamp))
 
         # Parse optional 'pause' argument, can be given like this:
@@ -257,7 +259,16 @@ class Rollback(RemoteTask):
         # check if rollback is possible
         if not exists(env.previous_instance_path):
             abort(red('No rollback possible. No previous instance found to rollback to.'))
-        if not exists(os.path.join(env.backup_path, 'db_backup_start.sql')):
+
+        # Find gziped or plain db_backup file (for backwards compatibility)
+        for db_backup_file in ('db_backup_start.sql.gz', 'db_backup_start.sql'):
+            db_backup_path = os.path.join(env.backup_path, db_backup_file)
+            if exists(db_backup_path):
+                break
+        else:
+            db_backup_path = None
+
+        if db_backup_path is None:
             abort(red('Could not find backupfile to restore database with.'))
 
         # start rollback
@@ -268,9 +279,7 @@ class Rollback(RemoteTask):
             is_website_running = False
 
             print(green('\nRestoring database to start of this instance.'))
-            utils.instance.restore_database(
-                os.path.join(env.backup_path, 'db_backup_start.sql')
-            )
+            utils.instance.restore_database(db_backup_path)
 
             print(green('\nRemoving this instance and set previous to current.'))
             utils.instance.rollback(env.vhost_path)
@@ -395,9 +404,18 @@ class RestoreDatabase(RemoteTask):
     name = 'restore_database'
 
     def __call__(self):
-        utils.instance.restore_database(
-            os.path.join(env.backup_path, 'db_backup_start.sql')
-        )
+        # Find gziped or plain db_backup file (for backwards compatibility)
+        for db_backup_file in ('db_backup_start.sql.gz', 'db_backup_start.sql'):
+            db_backup_path = os.path.join(env.backup_path, db_backup_file)
+            if exists(db_backup_path):
+                break
+        else:
+            db_backup_path = None
+
+        if db_backup_path is None:
+            abort(red('Could not find backupfile to restore database with.'))
+
+        utils.instance.restore_database(db_backup_path)
 
 
 class Test(RemoteTask):

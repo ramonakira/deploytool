@@ -99,12 +99,12 @@ def restore_database(file_path):
 def backup_and_download_database(local_output_filename=''):
     def generate_output_file():
         timestamp = datetime.today().strftime('%y%m%d%H%M')
-        return '%s%s_%s.sql' % (env.project_name_prefix, env.database_name, timestamp)
+        return '%s%s_%s.sql.gz' % (env.project_name_prefix, env.database_name, timestamp)
 
     if not local_output_filename:
         local_output_filename = generate_output_file()
 
-    remote_filename = os.path.join('/tmp/', str(uuid.uuid4()))
+    remote_filename = os.path.join('/tmp/', '%s.gz' % uuid.uuid4())
 
     print(green('\nCreating backup.'))
     backup_database(remote_filename)
@@ -151,6 +151,7 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
             '--use-mirrors'
         ]
 
+    commands.rotate_log(log_file, max_bytes=512, backups=10)
     run(' '.join(arguments))
 
 
@@ -242,7 +243,7 @@ def log(success, task_name, stamp, log_path):
         result = 'failed'
 
     message = '[%s] %s %s in %s by %s for %s' % (
-        datetime.today().strftime('%Y-%m-%d %H:%M'),
+        datetime.today().strftime('%Y-%m-%d %H:%M:%S'),
         task_name,
         result,
         env.environment,
@@ -250,4 +251,6 @@ def log(success, task_name, stamp, log_path):
         stamp
     )
 
-    append(os.path.join(log_path, 'fabric.log'), message)
+    log_file = os.path.join(log_path, 'fabric.log')
+    commands.rotate_log(log_file, max_bytes=1024**2, backups=5)
+    append(log_file, message)
