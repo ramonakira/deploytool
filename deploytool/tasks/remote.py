@@ -471,7 +471,7 @@ class RestoreRemoteDatabase(RemoteTask):
         settings = self.import_django_settings()
 
         self.check_database_engine(settings)
-        local_backup_file = backup_and_download_database()
+        local_zipped_backup_file = backup_and_download_database()
 
         print('Restoring database on local machine')
         database_name = settings.DATABASES['default']['NAME']
@@ -482,8 +482,12 @@ class RestoreRemoteDatabase(RemoteTask):
         if result.return_code != 0:
             print 'Could not remove local database'
         else:
+            local('gunzip %s' % local_zipped_backup_file)
+            local_backup_file = local_zipped_backup_file.replace('.gz', '')
+
             local('createdb %s --owner=%s --encoding=utf8' % (database_name, database_user))
-            local('psql -d %s -f %s' % (database_name, local_backup_file))
+            print local_backup_file
+            local('psql -d %s -f %s -q' % (database_name, local_backup_file))
             local('rm %s' % local_backup_file)
 
     def import_django_settings(self):
