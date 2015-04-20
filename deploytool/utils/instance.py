@@ -143,12 +143,6 @@ def pip_install_requirements(virtualenv_path, requirements_path, cache_path, log
     if use_wheel:
         arguments += [
             '--use-wheel',
-            '--find-links=/opt/wheels',
-        ]
-    else:
-        arguments += [
-            '--download-cache=%s' % cache_path,
-            '--use-mirrors'
         ]
 
     commands.rotate_log(log_file, max_bytes=512, backups=10)
