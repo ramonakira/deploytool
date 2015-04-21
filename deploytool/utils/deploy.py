@@ -223,7 +223,7 @@ class WebsiteDeployment(object):
 
         create_symbolic_links = env.get('collect_static_link', True)
 
-        commands.collect_static(self.virtualenv_path, self.source_path, create_symbolic_links)
+        commands.collect_static(self.vhost_path, self.virtualenv_path, self.source_path, create_symbolic_links)
 
         if 'after_collect_static_files' in env:
             env.after_collect_static_files(env, *self.task_args, **self.task_kwargs)
@@ -285,7 +285,7 @@ class WebsiteDeployment(object):
 
         print(green('\nSyncing database.'))
 
-        commands.django_manage(self.virtualenv_path, self.source_path, 'syncdb')
+        commands.django_manage(self.vhost_path, self.virtualenv_path, self.source_path, 'syncdb')
 
         print('')
 
@@ -300,7 +300,7 @@ class WebsiteDeployment(object):
 
         print(green('\nMigrating database.'))
 
-        commands.django_manage(self.virtualenv_path, self.source_path, 'migrate')
+        commands.django_manage(self.vhost_path, self.virtualenv_path, self.source_path, 'migrate')
 
         print('')
 

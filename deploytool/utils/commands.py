@@ -1,3 +1,5 @@
+import os
+
 from fabric.api import run, local, get, cd, abort, sudo, env
 from fabric.colors import red
 from fabric.contrib.files import exists
@@ -135,10 +137,14 @@ def rotate_log(log_path, max_bytes=0, backups=0):
         run('> %s' % log_path)
 
 
-def python_run(virtualenv_path, command, sudo_username):
+def python_run(vhost_path, virtualenv_path, command, sudo_username):
     """ Execute Python commands for current virtual environment """
 
-    full_command = '%s/bin/python %s' % (virtualenv_path, command)
+    vars_path = os.path.join(vhost_path, 'vars')
+    run_envdir = "envdir %s" % vars_path
+    python_command = '%s/bin/python %s' % (virtualenv_path, command)
+
+    full_command = '%s %s' % (run_envdir, python_command)
 
     if sudo_username:
         return sudo(full_command, user=sudo_username)
@@ -146,12 +152,12 @@ def python_run(virtualenv_path, command, sudo_username):
         return run(full_command)
 
 
-def django_manage(virtualenv_path, project_path, command, sudo_username=None):
+def django_manage(vhost_path, virtualenv_path, project_path, command, sudo_username=None):
     """ Execute Django management command """
 
     with cd(project_path):
         python_command = 'manage.py %s' % command
-        python_run(virtualenv_path, python_command, sudo_username)
+        python_run(vhost_path, virtualenv_path, python_command, sudo_username)
 
 
 def get_python_version():
@@ -190,7 +196,7 @@ def start_supervisor_jobs(vhost_path):
     run_supervisor(vhost_path, 'start all')
 
 
-def collect_static(virtualenv_path, source_path, create_symbolic_links=True):
+def collect_static(vhost_path, virtualenv_path, source_path, create_symbolic_links=True):
     parameters = [
         '--noinput',
         '--verbosity=0',
@@ -201,6 +207,7 @@ def collect_static(virtualenv_path, source_path, create_symbolic_links=True):
         parameters.append('--link')
 
     django_manage(
+        vhost_path,
         virtualenv_path,
         source_path,
         'collectstatic %s' % ' '.join(parameters)
