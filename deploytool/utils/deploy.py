@@ -70,6 +70,8 @@ class WebsiteDeployment(object):
 
             self.install_gunicorn()
 
+            self.install_dotenv()
+
             self.copy_settings()
 
             self.create_media_folder_link()
@@ -189,6 +191,15 @@ class WebsiteDeployment(object):
             '17.5',
             env.cache_path,
             self.log_path,
+        )
+
+    def install_dotenv(self):
+        instance.pip_install_package(
+            self.virtualenv_path,
+            'python-dotenv',
+            '0.1.2',
+            env.cache_path,
+            self.log_path
         )
 
     def copy_settings(self):
